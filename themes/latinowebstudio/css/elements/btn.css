@@ -1,0 +1,76 @@
+.btn-main, .btn-main a,
+span.wc-block-components-button__text {
+    background: var(--accent-primary);
+    padding: 5px 35px 5px;
+    transition: all .25s ease-in-out;
+    display: inline-block;
+    text-decoration: none;
+    color: white;
+    text-shadow:none;
+    border-radius: 25px;
+    text-transform: uppercase;
+    border:1px solid var(--accent-primary);
+    font-family: 'pontiacbold';
+    margin: 10px;
+    box-shadow:var(--box-shadow);
+}
+
+.btn-main:hover, 
+span.wc-block-components-button__text:hover
+{
+    background: var(--accent-secondary-hover);
+    border-color:var(--accent-secondary-hover);
+    text-decoration: none;
+    color:black;
+}
+
+.btn-main.white {
+    background:white;
+    border-color:#b0b0b0;
+    color:black;
+}
+.btn-main.white:hover {
+    background:var(--accent-primary);
+    border-color:var(--accent-primary);
+    color:white!important;
+}
+.btn-main.outline {
+    border: 1px solid var(--accent-secondary);
+    color:var(--accent-secondary) !important;
+    background:transparent;
+}
+
+.btn-main.outline:hover {
+    background: var(--accent-secondary);
+    color:black !important;
+}
+.btn-main.outline.accent {
+    border-color: var(--accent-primary);
+    color:var(--accent-primary);
+    background:transparent;
+}
+
+.btn-main.outline.accent:hover {
+    background: var(--accent-secondary);
+    color:white;
+}
+.btn-main.outline.white {
+    border-color: white;
+    color:white;
+    background:transparent;
+}
+
+.btn-main.outline.white:hover {
+    background: white;
+    color:black;
+}
+
+/* woocommerce */
+span.wc-block-components-button__text {
+    width: 100%;
+    margin: 0;
+}
+button.components-button.wc-block-components-button.wp-element-button.wc-block-components-checkout-place-order-button.contained {
+    border: none!important;
+    background: none!important;
+}
