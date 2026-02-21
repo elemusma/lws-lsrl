@@ -23,22 +23,22 @@ echo codeBody();
 // if ( is_user_logged_in() && current_user_can( 'manage_options' ) ) {
     // echo '<header class="position-relative box-shadow bg-accent w-100" style="top:0;left:0;z-index:10;margin-top:32px;">';
     // } else {
-echo '<section class="secondary-nav bg-accent-quaternary" style="padding:3px 0px;">';
-echo '<div class="container">';
+// echo '<section class="secondary-nav bg-accent-quaternary" style="padding:3px 0px;">';
+// echo '<div class="container">';
 
-echo '<div class="row small">';
+// echo '<div class="row small">';
 
-echo '<div class="col-md-6">';
-echo '<span class="text-accent">email: </span><a href="mailto:' . companyEmail() . '" target="_blank" class="text-white">' . companyEmail() . '</a>';
-echo '</div>';
+// echo '<div class="col-md-6">';
+// echo '<span class="text-accent">email: </span><a href="mailto:' . companyEmail() . '" target="_blank" class="text-white">' . companyEmail() . '</a>';
+// echo '</div>';
 
-echo '<div class="col-md-6 text-md-right">';
-echo '<span class="text-accent">Call or text us: </span><a href="mailto:' . companyPhone() . '" target="_blank" class="text-white">' . companyPhone() . '</a>';
-echo '</div>';
+// echo '<div class="col-md-6 text-md-right">';
+// echo '<span class="text-accent">Call or text us: </span><a href="mailto:' . globalPhone() . '" target="_blank" class="text-white">' . globalPhone() . '</a>';
+// echo '</div>';
 
-echo '</div>';
-echo '</div>';
-echo '</section>';
+// echo '</div>';
+// echo '</div>';
+// echo '</section>';
 
 echo '<div class="blank-space" style=""></div>';
 echo '<header class="position-relative box-shadow bg-white w-100" style="top:0;left:0;z-index:100;padding-top:7.5px;">';

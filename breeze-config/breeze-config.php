@@ -100,6 +100,6 @@
   'breeze-lazy-load-iframes' => '0',
   'breeze-lazy-load-videos' => '0',
   'woocommerce_geolocation_ajax' => 0,
-  'permalink_structure' => '/%postname%/',
+  'permalink_structure' => '/%category%/%postname%/',
 ); 
 

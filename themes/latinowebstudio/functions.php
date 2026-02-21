@@ -1,6 +1,6 @@
 <?php
 
-function down_to_earth_investments_stylesheets() {
+function lsrl_stylesheets() {
 wp_enqueue_style('style', get_stylesheet_uri() );
 
 wp_enqueue_style('layout', get_theme_file_uri('/css/sections/layout.css'));
@@ -46,13 +46,13 @@ wp_enqueue_style('font-poppins', get_theme_file_uri('/font-poppins/font-poppins.
 // wp_enqueue_style('coromant-garamond', '//use.typekit.net/fqe2slt.css');
 
 }
-add_action('wp_enqueue_scripts', 'down_to_earth_investments_stylesheets');
+add_action('wp_enqueue_scripts', 'lsrl_stylesheets');
 
 
 
 
 // for footer
-function down_to_earth_investments_stylesheets_footer() {
+function lsrl_stylesheets_footer() {
 
 wp_enqueue_style('nav-mobile', get_theme_file_uri('/css/sections/nav-mobile.css'));
 // wp_enqueue_style('style-footer', get_theme_file_uri('/css/style-footer.css'));
@@ -87,7 +87,14 @@ if (is_single()) {
 	}
 }
 
-add_action('get_footer', 'down_to_earth_investments_stylesheets_footer');
+add_action('get_footer', 'lsrl_stylesheets_footer');
+
+// function global_cta_shortcode() {
+//   $phone = globalPhone(); // get phone number dynamically
+//     $output = '<div>' . do_shortcode('[book_online_button]') . '</div>';
+//     $output .= '<a href="tel:' . $phone . '" class="text-link d-inline-block phone text-shadow-white" style="">' . $phone . '</a>';
+//     return $output;
+// }
 
 // loads enqueued javascript files deferred
 function mind_defer_scripts( $tag, $handle, $src ) {
@@ -111,7 +118,7 @@ if ( in_array( $handle, $defer ) ) {
 } 
 add_filter( 'script_loader_tag', 'mind_defer_scripts', 10, 3 );
 
-function down_to_earth_investments_menus() {
+function lsrl_menus() {
 register_nav_menus( array(
 'primary' => __( 'Primary' )));
 register_nav_menus( array(
@@ -121,7 +128,7 @@ add_theme_support('title-tag');
 add_theme_support('post-thumbnails');
 }
 
-add_action('after_setup_theme', 'down_to_earth_investments_menus');
+add_action('after_setup_theme', 'lsrl_menus');
 
 if( function_exists('acf_add_options_page') ) {
 
@@ -236,6 +243,18 @@ return $current_year;
 }
 
 add_shortcode( 'currentyear', 'current_year' );
+
+function lsrl_shortcode() {
+  $phone = globalPhone(); // get phone number dynamically
+    return do_shortcode('
+[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash for Your Land[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Want to Go to Market?[/button]
+        <div style="margin:15px 0px;">
+            <span>Call or Text: </span>
+            <a href="tel:+' . $phone . '" class="text-link d-inline-block phone">' . $phone . '</a>
+        </div>
+    ');
+}
+add_shortcode('global_cta', 'lsrl_shortcode');
 
 function social_media_icons( $atts, $content = null ) {
 
@@ -417,7 +436,7 @@ CSF::createSection( $prefix, array(
 	  
 	  // A text field
       array(
-		'id'      => 'opt-text-phone',
+		'id'      => 'global-phone',
 		'type'    => 'text',
 		'title'   => 'Phone Number',
 		'default' => '555.555.5555'
@@ -537,11 +556,11 @@ function companyEmail() {
     global_function(); // call the global function to set $options
     return $options['opt-text-email'];
 }
-function companyPhone() {
-    global $options;
-    global_function(); // call the global function to set $options
-    return $options['opt-text-phone'];
-}
+// function companyPhone() {
+//     global $options;
+//     global_function(); // call the global function to set $options
+//     return $options['opt-text-phone'];
+// }
 function companyCopyright() {
     global $options;
     global_function(); // call the global function to set $options
@@ -586,3 +605,29 @@ add_filter( 'wp_check_filetype_and_ext', function($data, $file, $filename, $mime
 		  </style>';
   }
   add_action( 'admin_head', 'fix_svg' );
+
+//   function global_phone_shortcode() {
+//   return '<a class="phone bold" href="tel:+1' . companyPhone() . '" style="" target="" id="">' . companyPhone() . '</a>';
+// }
+
+function global_cta_shortcode() {
+  $phone = globalPhone(); // get phone number dynamically
+    $output = '<div>' . do_shortcode('[book_online_button]') . '</div>';
+    $output .= '<a href="tel:' . $phone . '" class="text-link d-inline-block phone text-shadow-white" style="">' . $phone . '</a>';
+    return $output;
+}
+
+add_shortcode('nav_cta', 'global_cta_shortcode');
+
+function globalPhone() {
+    global $options;
+    global_function(); // call the global function to set $options
+    return $options['global-phone'];
+}
+
+// echo globalPhone();
+
+function global_phone_text_shortcode() {
+    return globalPhone();
+}
+add_shortcode('global_phone_text', 'global_phone_text_shortcode');
