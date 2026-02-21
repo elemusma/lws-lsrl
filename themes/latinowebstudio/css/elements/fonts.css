@@ -33,6 +33,9 @@ a {
 .text-shadow.white {
   text-shadow: var(--text-shadow-white);
 }
+.text-shadow.accent {
+  text-shadow: var(--text-shadow-accent);
+}
 
 .text-black {
   color: black;

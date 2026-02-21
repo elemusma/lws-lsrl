@@ -23,7 +23,8 @@ import {
 	Button,
 	PanelBody,
 	__experimentalInputControl as InputControl,
-	TextControl,
+	TextControl,ToggleControl,
+	SelectControl
 } from '@wordpress/components';
 import { useState, useEffect } from '@wordpress/element';
 // import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
@@ -51,8 +52,12 @@ export default function Edit( { attributes, setAttributes } ) {
 		section_class,
 		section_id,
 		section_image,
+		section_image_alt,
+		section_image_title,
 		section_image_class,
 		section_image_style,
+		section_image_data_aos,
+		section_image_data_aos_delay,
 		section_block,
 		container_style,
 		container_class,
@@ -60,46 +65,72 @@ export default function Edit( { attributes, setAttributes } ) {
 		row_style,
 		row_class,
 		row_id,
+		show_column,
+		col_style,
+		col_class,
+		col_id,
+		col_data_aos,
+		col_data_aos_delay,
+		columns_style,
+		columns_class,
+		columns_id,
 		columns,
 	} = attributes;
 
 	const [ value, setValue ] = useState( '' );
 
+	const utilityFunction = () => ({
+		col_class: 'col-lg-3 col-6 d-flex h-auto',
+		col_style: '',
+		col_id: '',
+		col_link: '',  // ADD THIS
+		inner_col_style: '',
+		inner_col_class: '',
+		data_aos: 'fade-up',
+		data_aos_delay:'',
+		img: '',
+	    img_alt: '',
+  		img_title: '',  // Add this line
+		img_class: 'w-100 h-auto',
+		img_style: 'object-fit:contain;',
+		title: '',
+		title_tag: 'h2',
+		title_class: 'h6 bold',
+		title_style: '',
+		content_class: '',
+		content_style: '',
+		content: '',
+		code_block: ''
+	})
+
 	const addColumn = () => {
 		setAttributes( {
 			columns: [
 				...columns,
-				{
-					col_class: 'col-md-6 d-flex align-items-stretch',
-					col_style: '',
-					col_id: '',
-					inner_col_style: '',
-					inner_col_class: '',
-					data_aos: 'fade-up',
-					data_aos_delay:'',
-					img: '',
-					img_class: 'w-100',
-					img_style: '',
-					title: 'new column',
-					content: 'new column content',
-					code_block: ''
-				},
+				utilityFunction(),
 			],
 		} );
 	};
 
-	const updateColumn = ( columnIndex, field, value ) => {
-		setAttributes( {
-			columns: columns.map( ( column, index ) => {
-				if ( index === columnIndex ) {
+	const updateColumn = (columnIndex, field, value) => {
+		setAttributes({
+			columns: columns.map((column, index) => {
+				if (index === columnIndex) {
+					// Check if the value is an object (in case of multiple updates)
+					if (typeof value === 'object' && value !== null) {
+						return {
+							...column,
+							...value, // Spread the object fields
+						};
+					}
 					return {
 						...column,
-						[ field ]: value,
+						[field]: value, // Single field update
 					};
 				}
 				return column;
-			} ),
-		} );
+			}),
+		});
 	};
 
 	return (
@@ -134,36 +165,36 @@ export default function Edit( { attributes, setAttributes } ) {
 				>
 					<MediaUploadCheck>
 						<MediaUpload
-							onSelect={ ( media ) =>
-								setAttributes( { section_image: media.url } )
-							}
+							onSelect={(media) => setAttributes({ section_image: media.url, section_image_alt: media.alt,section_image_title: media.title?.rendered || media.title || '' })}
 							type="image"
-							allowedTypes={ [ 'image' ] }
-							value={ section_image }
-							render={ ( { open } ) => (
+							allowedTypes={['image']}
+							value={section_image}
+							render={({ open }) => (
 								<div>
-									{ section_image && (
-										<Button
-											isLink
-											isDestructive
-											onClick={ () =>
-												setAttributes( {
-													section_image: '',
-												} )
-											}
-										>
-											{ __( 'Remove Section Image' ) }
-										</Button>
-									) }
+									{section_image && (
+										<>
+											<Button
+												isLink
+												isDestructive
+												onClick={() => setAttributes({ section_image: '', section_image_alt: '',section_image_title: '' })}
+											>
+												{__('Remove Section Image')}
+											</Button>
+											<img src={section_image} alt={section_image_alt || section_image_title} style={{maxWidth: '100%'}} />
+											{/* {section_image_alt && ( */}
+												<p>{__('Alt Text:')} {section_image_alt || section_image_title}</p>
+											{/* // )} */}
+										</>
+									)}
 									<Button
-										onClick={ open }
+										onClick={open}
 										icon="upload"
 										className="editor-media-placeholder__button is-button is-default is-large"
 									>
-										{ __( 'Select Section Image' ) }
+										{__('Select Section Image')}
 									</Button>
 								</div>
-							) }
+							)}
 						/>
 					</MediaUploadCheck>
 
@@ -181,13 +212,22 @@ export default function Edit( { attributes, setAttributes } ) {
 							setAttributes( { section_image_style: nextValue } )
 						}
 					/>
+					<InputControl
+						label="Background Image Data AOS"
+						value={ section_image_data_aos }
+						onChange={ ( nextValue ) =>
+							setAttributes( { section_image_data_aos: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Background Image Data AOS Delay"
+						value={ section_image_data_aos_delay }
+						onChange={ ( nextValue ) =>
+							setAttributes( { section_image_data_aos_delay: nextValue } )
+						}
+					/>
 				</PanelBody>
 				<PanelBody title={ __( 'Code Block' ) } initialOpen={ false }>
-					{ /* <InputControl
-						label="Code Block"
-						value={section_block}
-						onChange={(nextValue) => setAttributes({ section_block: nextValue })}
-					/> */ }
 					<label style={ { lineHeight: '2' } }>Code Block</label>
 					<textarea
 						id="sectionStyleTextarea"
@@ -247,11 +287,74 @@ export default function Edit( { attributes, setAttributes } ) {
 						}
 					/>
 				</PanelBody>
+				<PanelBody title={ __( 'Column' ) } initialOpen={ false }>
+					<ToggleControl
+	label="Show Column"
+	checked={attributes.show_column}
+	onChange={(value) => setAttributes({ show_column: value })}
+/>
+				<InputControl
+						label="Column Style"
+						value={ col_style }
+						onChange={ ( nextValue ) =>
+							setAttributes( { col_style: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column Class"
+						value={ col_class }
+						onChange={ ( nextValue ) =>
+							setAttributes( { col_class: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column ID"
+						value={ col_id }
+						onChange={ ( nextValue ) =>
+							setAttributes( { col_id: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column Data AOS"
+						value={ col_data_aos }
+						onChange={ ( nextValue ) =>
+							setAttributes( { col_data_aos: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column Data AOS Delay"
+						value={ col_data_aos_delay }
+						onChange={ ( nextValue ) =>
+							setAttributes( { col_data_aos_delay: nextValue } )
+						}
+					/>
+				</PanelBody>
 				
 				<PanelBody
-					title={ __( 'Column Settings' ) }
+					title={ __( 'Columns Settings' ) }
 					initialOpen={ false }
 				>
+					<InputControl
+						label="Column Style"
+						value={ columns_style }
+						onChange={ ( nextValue ) =>
+							setAttributes( { columns_style: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column Class"
+						value={ columns_class }
+						onChange={ ( nextValue ) =>
+							setAttributes( { columns_class: nextValue } )
+						}
+					/>
+					<InputControl
+						label="Column ID"
+						value={ columns_id }
+						onChange={ ( nextValue ) =>
+							setAttributes( { columns_id: nextValue } )
+						}
+					/>
 					<button onClick={ () => addColumn() }>
 						Add New Column
 					</button>
@@ -261,12 +364,14 @@ export default function Edit( { attributes, setAttributes } ) {
 				<img src={ section_image } alt="" />
 				{ console.log( section_image ) }
 				<div className="column-wrapper">
+
+				<InnerBlocks />
+
 					{ columns.map( ( column, index ) => {
 						return (
 							<div
 								className={ `column ${ column.col_class }` }
 								style={ {
-									background: '#f7f7f7',
 									padding: '25px',
 									borderBottom: '1px solid',
 									marginBottom: '25px',
@@ -322,23 +427,25 @@ export default function Edit( { attributes, setAttributes } ) {
 								/>
 								</div>
 								</div>
-								<div style={{display:'flex'}}>
-								<div style={{paddingRight:'25px'}}>
-								<p style={ { marginBottom: '0px' } }>Inner Column Style</p>
-								<input
-									type="text"
-									style={{width:'300px'}}
-									value={ column.inner_col_style }
-									onChange={ ( content ) =>
-										updateColumn(
-											index,
-											'inner_col_style',
-											content.target.value
-										)
-									}
-								/>
-								
+								<div>
+									<p style={ { marginBottom: '0px' } }>
+											Column Link
+										</p>
+										<input
+		type="url"
+		value={ column.col_link }
+		onChange={ ( content ) =>
+			updateColumn(
+				index,
+				'col_link',
+				content.target.value
+			)
+		}
+		placeholder="https://example.com"
+	/>
 								</div>
+								<div style={{display:'flex'}}>
+								
 								<div>
 								<p style={ { marginBottom: '0px' } }>Inner Column Class</p>
 								<input
@@ -349,6 +456,22 @@ export default function Edit( { attributes, setAttributes } ) {
 										updateColumn(
 											index,
 											'inner_col_class',
+											content.target.value
+										)
+									}
+								/>
+								
+								</div>
+								<div style={{paddingRight:'25px'}}>
+								<p style={ { marginBottom: '0px' } }>Inner Column Style</p>
+								<input
+									type="text"
+									style={{width:'300px'}}
+									value={ column.inner_col_style }
+									onChange={ ( content ) =>
+										updateColumn(
+											index,
+											'inner_col_style',
 											content.target.value
 										)
 									}
@@ -397,60 +520,53 @@ export default function Edit( { attributes, setAttributes } ) {
 									} }
 								>
 									<div>
-										<img
-											src={ column.img }
-											style={ {
-												width: '400px',
-												height: '225px',
-												objectFit: 'cover',
-											} }
-										/>
-										<MediaUploadCheck>
-											<MediaUpload
-												onSelect={ ( media ) =>
-													updateColumn(
-														index,
-														'img',
-														media.url
-													)
-												}
-												type="image"
-												allowedTypes={ [ 'image' ] }
-												value={ column.img }
-												render={ ( { open } ) => (
-													<div>
-														{ column.img && (
-															<Button
-																isLink
-																isDestructive
-																onClick={ () =>
-																	updateColumn(
-																		index,
-																		'img',
-																		''
-																	)
-																}
-															>
-																{ __(
-																	'Remove Col Image'
-																) }
-															</Button>
-														) }
-														<Button
-															onClick={ open }
-															icon="upload"
-															className="editor-media-placeholder__button is-button is-default is-large"
-														>
-															{ __(
-																'Select Col Image'
-															) }
-														</Button>
-													</div>
-												) }
-											/>
-										</MediaUploadCheck>
-
-										<div style={{display:'flex'}}>
+										
+<MediaUploadCheck>
+	<MediaUpload
+		onSelect={(media) =>
+  updateColumn(index, null, { img: media.url, img_alt: media.alt, img_title: media.title?.rendered || media.title || '' })
+}
+		type="image"
+		allowedTypes={['image']}
+		value={column.img}
+		render={({ open }) => (
+			<div>
+				{column.img && (
+				<p className={``} style={{fontSize:'80%',lineHeight:'1.2'}}>{__('Alt Text:')} {column.alt || column.img_title}</p>
+			)}
+				{column.img && (
+					<Button
+						isLink
+						isDestructive
+						onClick={() => updateColumn(index, null, {img: '', img_alt: '', img_title: ''})}
+					>
+						{__('Remove Col Image')}
+					</Button>
+				)}
+				<Button
+					onClick={open}
+					icon="upload"
+					className="editor-media-placeholder__button is-button is-default is-large"
+				>
+					{__('Select Col Image')}
+				</Button>
+			</div>
+		)}
+	/>
+</MediaUploadCheck>
+{ column.img && (
+  <img
+    src={ column.img }
+    alt={ column.img_alt || column.img_title }
+    style={ {
+      width: '400px',
+      height: '225px',
+      objectFit: 'cover',
+    } }
+  />
+)}
+<div>
+								<div style={{display:'flex'}}>
 								<div style={{paddingRight:'25px'}}>
 								<p style={ { marginBottom: '0px' } }>Image Class</p>
 								<input
@@ -483,10 +599,10 @@ export default function Edit( { attributes, setAttributes } ) {
 								/>
 								
 								</div>
+								
 								</div>
-
-									</div>
-									<div style={ { paddingLeft: '50px' } }>
+								</div>
+<p style={{marginBottom:'0px'}}>Code Section</p>
 									<textarea
 										style={{height:'200px',width:'300px'}}
 											value={ column.code_block }
@@ -501,6 +617,56 @@ export default function Edit( { attributes, setAttributes } ) {
 												'Code goes here'
 											) }
 										/>
+									</div>
+									<div style={ { paddingLeft: '50px' } }>
+										
+										<div style={{display:'flex'}}>
+										<InputControl
+											label="Title Class"
+											value={ column.title_class }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'title_class',
+													content
+												)
+											}
+											placeholder={ __( 'Title Class' ) }
+										/>
+										<InputControl
+											label="Title Style"
+											value={ column.title_style }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'title_style',
+													content
+												)
+											}
+											placeholder={ __( 'Title Style' ) }
+										/>
+										</div>
+										<SelectControl
+	label="Title Tag"
+	value={ column.title_tag }
+	options={ [
+		{ label: 'Heading 2', value: 'h2' },
+		{ label: 'Heading 1', value: 'h1' },
+		{ label: 'Heading 3', value: 'h3' },
+		{ label: 'Heading 4', value: 'h4' },
+		{ label: 'Heading 5', value: 'h5' },
+		{ label: 'Heading 6', value: 'h6' },
+		{ label: 'Paragraph', value: 'p' },
+		{ label: 'Div', value: 'div' },
+	] }
+	onChange={ ( value ) =>
+		updateColumn(
+			index,
+			'title_tag',
+			value
+		)
+	}
+/>
 										<p style={{marginBottom:'0px'}}>Title</p>
 										<RichText
 											value={ column.title }
@@ -513,6 +679,32 @@ export default function Edit( { attributes, setAttributes } ) {
 											}
 											placeholder={ __( 'Column Title' ) }
 										/>
+										<div style={{display:'flex'}}>
+										<InputControl
+											label="content Class"
+											value={ column.content_class }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'content_class',
+													content
+												)
+											}
+											placeholder={ __( 'Content Class' ) }
+										/>
+										<InputControl
+											label="content Style"
+											value={ column.content_style }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'content_style',
+													content
+												)
+											}
+											placeholder={ __( 'Content Style' ) }
+										/>
+										</div>
 										<p style={{marginBottom:'0px'}}>Content</p>
 										<RichText
 											value={ column.content }
@@ -532,48 +724,107 @@ export default function Edit( { attributes, setAttributes } ) {
 										{ /* <p>{ column.content }</p> */ }
 									</div>
 								</div>
-								<Button
-                style={{ border: '1px solid' }}
-                onClick={() => {
-                    const newColumns = [...columns]; // Copy the current columns array
-                    const newColumn = { ...column }; // Copy the current column object
-                    newColumns.splice(index + 1, 0, newColumn); // Insert the copied column after the current one
-                    setAttributes({ columns: newColumns }); // Update state or attributes with the new array
-                }}
-            >
-                {__('Copy Column')}
-            </Button>
-								<Button
-    style={{border:'1px solid'}}
+<Button
+    style={{
+		border:'1px solid',
+		background:'white'
+	}}
+	className={`button-hero`}
     onClick={() => {
-        const newColumns = [...columns]; // Create a copy of the columns array
-        const newColumn = { // Define a new column object
-            col_class: '',
-            col_style: '',
-            col_id: '',
-			inner_col_style: '',
-            img: '',
-            title: 'new column',
-            content: 'new column content',
-        };
-        newColumns.splice(index, 0, newColumn); // Insert the new column at the current index
-        setAttributes({ columns: newColumns }); // Update the columns attribute with the new array
+        const newColumns = [...columns];
+        const newColumn = utilityFunction();
+        newColumns.splice(index, 0, newColumn);
+        setAttributes({ columns: newColumns });
     }}
 >
     {__('Add Column Above')}
 </Button>
+{/* add column above */}
+<Button
+    style={{
+		border:'1px solid',
+		background:'white'
+	}}
+	className={`button-hero`}
+    onClick={() => {
+        const newColumns = [...columns];
+        const newColumn = utilityFunction();
+        newColumns.splice(index + 1, 0, newColumn);
+        setAttributes({ columns: newColumns });
+    }}
+>
+    {__('Add Column Below')}
+</Button>
+{/* Duplicate Button */}
+<Button
+style={{
+	border:'1px solid',
+	background:'white'
+}}
+className={`button-hero`}
+onClick={() => {
+const newColumns = [...columns];
+const duplicateFeature = { ...column }; // Copy the tab object
+newColumns.splice(index + 1, 0, duplicateFeature); // Insert the copy after the current tab
+setAttributes({ columns: newColumns });
+}}
+>
+{__('Duplicate Column')}
+</Button>
+<Button
+style={{
+	border:'1px solid',
+	background:'peachpuff'
+}}
+className={`button-hero`}
+isDestructive
+onClick={() => {
+const newColumns = [...columns];
+newColumns.splice(index, 1);
+setAttributes({ columns: newColumns });
+}}
+>
+{__('Remove Column')}
+</Button>
+{/* Move Up Button */}
+<Button
+style={{
+	border:'1px solid',
+	background:'white'
+}}
+className={`button-hero`}
+onClick={() => {
+	if (index === 0) return; // Prevent moving the first item up
+	const newColumns = [...columns];
+	const temp = newColumns[index - 1];
+	newColumns[index - 1] = newColumns[index];
+	newColumns[index] = temp;
+	setAttributes({ columns: newColumns });
+}}
+disabled={index === 0} // Disable if it's the first item
+>
+{__('Move Up')}
+</Button>
 
-								<Button
-								style={{border:'1px solid'}}
-                isDestructive
-                onClick={() => {
-                    const newColumns = [...columns];
-                    newColumns.splice(index, 1);
-                    setAttributes({ columns: newColumns });
-                }}
-            >
-                {__('Remove Column')}
-            </Button>
+{/* Move Down Button */}
+<Button
+style={{
+	border:'1px solid',
+	background:'white'
+}}
+className={`button-hero`}
+onClick={() => {
+	if (index === columns.length - 1) return; // Prevent moving the last item down
+	const newColumns = [...columns];
+	const temp = newColumns[index + 1];
+	newColumns[index + 1] = newColumns[index];
+	newColumns[index] = temp;
+	setAttributes({ columns: newColumns });
+}}
+disabled={index === columns.length - 1} // Disable if it's the last item
+>
+{__('Move Down')}
+</Button>
 							</div>
 						);
 					} ) }

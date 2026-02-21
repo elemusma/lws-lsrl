@@ -22,6 +22,27 @@ img.img-si {
     object-fit: contain;
 }
 
+.img-backsplash:before {
+    content: "";
+    background: var(--accent-primary);
+    position: absolute;
+    border-radius: 8px;
+    width: 90%;
+    height: calc(100% - 25px);
+    top: -15px;
+    left: 0px;
+    z-index: -1;
+}
+
+.img-backsplash.right:before {
+    left:unset;
+    right:0px;
+}
+
+.img-backsplash img {
+    border-radius:8px;
+}
+
 .si-individual {
     background: rgba(0, 0, 0, .25);
     padding: 12px;

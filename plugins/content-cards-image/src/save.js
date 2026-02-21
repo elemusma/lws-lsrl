@@ -9,6 +9,22 @@ import { useBlockProps, InnerBlocks, RichText } from '@wordpress/block-editor';
 import { RawHTML } from '@wordpress/element';
 
 /**
+ * Helper function to convert inline style strings to objects
+ */
+const parseInlineStyles = (styleString) => {
+	if (!styleString) return {};
+	const styles = {};
+	styleString.split(';').forEach(style => {
+		const [key, value] = style.split(':').map(s => s.trim());
+		if (key && value) {
+			const camelKey = key.replace(/-([a-z])/g, g => g[1].toUpperCase());
+			styles[camelKey] = value;
+		}
+	});
+	return styles;
+};
+
+/**
  * The save function defines the way in which the different attributes should
  * be combined into the final markup, which is then serialized by the block
  * editor into `post_content`.
@@ -22,17 +38,19 @@ export default function save( { attributes } ) {
 	return (
 		<div { ...blockProps }>
 			<section
-				className={ `position-relative ${ attributes.section_class }` }
-				style={ `padding:50px 0;${ attributes.section_style }` }
+				className={ `${ attributes.section_class }` }
+				style={ `${ attributes.section_style }` }
 				id={ attributes.section_id }
 			>
 				{ /* <div className="column-wrapper"> */ }
 				{ attributes.section_image && (
 					<img
 						src={ attributes.section_image }
-						alt=""
-						className={ `w-100 h-100 position-absolute bg-img ${ attributes.section_image_class }` }
-						style={ `top:0;left:0;object-fit:cover;pointer-events:none;${ attributes.section_image_style }` }
+						alt={ attributes.section_image_alt || attributes.section_image_title }
+						className={ `${ attributes.section_image_class }` }
+						style={ `${ attributes.section_image_style }` }
+						data-aos={attributes.section_image_data_aos} 
+						data-aos-delay={attributes.section_image_data_aos_delay}
 					/>
 				) }
 
@@ -48,42 +66,87 @@ export default function save( { attributes } ) {
 						style={ attributes.row_style }
 						id={ attributes.row_id }
 					>
+						{attributes.show_column && (
+						<div
+						className={ attributes.col_class }
+						style={ attributes.col_style }
+						id={ attributes.col_id }
+						data-aos={attributes.col_data_aos} 
+						data-aos-delay={attributes.col_data_aos_delay}
+					>
+						<InnerBlocks.Content />
+					</div>
+						)}
+						{/** end of col */}
+					<div
+						className={ attributes.columns_class }
+						style={ attributes.columns_style }
+						id={ attributes.columns_id }
+					>
 						{ attributes.columns.map( ( column, index ) => {
-							return (
-								<div
-									className={ `${ column.col_class }` }
-									style={ column.col_style }
-								>
+							const TitleTag = column.title_tag || 'h3';
+							
+							const columnContent = (
 									<div
 										className={ `${ column.inner_col_class }` }
-										style={ `${ column.inner_col_style }` } data-aos={column.data_aos} data-aos-delay={column.data_aos_delay}
+										style={ `${ column.inner_col_style }` } 
+										data-aos={column.data_aos} 
+										data-aos-delay={column.data_aos_delay}
 									>
 										{ column.img && (
 											<img
 												src={ column.img }
-												alt={ column.title }
+												alt={ column.img_alt || column.img_title }
 												style={ column.img_style }
 												className={ column.img_class }
 											/>
 										) }
+
+										{ column.code_block && (
+											<RawHTML>{ column.code_block }</RawHTML>
+										)}
+										{(column.title || column.content) && (
 										<div className='' style={{}}>
-										<RawHTML>{ column.code_block }</RawHTML>
-										<h3 className={`h6`} style={{marginTop:'0px'}}>
-											<RichText.Content
-												value={ column.title }
-											/>
-										</h3>
-										<p style={ { marginBottom: '0px' } }>
+										
+										{React.createElement(TitleTag, 
+											{
+												className: `${column.title_class }`,
+												style: { ...parseInlineStyles(column.title_style) }
+											},
+											<RichText.Content value={ column.title } />
+										)}
+										<p 
+											className={ column.content_class }
+											style={ { ...parseInlineStyles(column.content_style) } }
+										>
 											<RichText.Content
 												value={ column.content }
 											/>
 										</p>
 										</div>
+										)}
 									</div>
-								</div>
+
 							);
+
+							if ( column.col_link ) {
+		return (
+			<a href={ column.col_link } key={ index } className={column.col_class} style={column.col_style}>
+				{ columnContent }
+			</a>
+		);
+	}
+
+
+	return (
+		<div key={ index } className={column.col_class} style={column.col_style}>
+			{ columnContent }
+		</div>
+	);
 						} ) }
-					</div>
+</div> {/** end of columns */}
+
+					</div> {/** end of row */}
 				</div>
 
 				

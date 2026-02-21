@@ -66,6 +66,8 @@ function Edit({
     section_class,
     section_id,
     section_image,
+    section_image_title,
+    section_image_alt,
     section_image_class,
     section_image_style,
     section_block,
@@ -78,10 +80,16 @@ function Edit({
     col_style,
     col_class,
     col_id,
+    col_data_aos,
+    col_data_aos_delay,
     col_image,
+    col_image_alt,
+    col_image_title,
     col_image_style,
     col_image_class,
     col_image_id,
+    col_image_data_aos,
+    col_image_data_aos_delay,
     image_style,
     image_class,
     image_id
@@ -114,21 +122,26 @@ function Edit({
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_2__.MediaUploadCheck, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_2__.MediaUpload, {
     onSelect: media => setAttributes({
       section_image: media.url,
-      section_image_alt: media.alt
+      section_image_alt: media.alt,
+      section_image_title: media.title?.rendered || media.title || ''
     }),
     type: "image",
     allowedTypes: ['image'],
     value: section_image,
     render: ({
       open
-    }) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, section_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
+    }) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, section_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
       isLink: true,
       isDestructive: true,
       onClick: () => setAttributes({
         section_image: '',
-        section_image_alt: ''
+        section_image_alt: '',
+        section_image_title: ''
       })
-    }, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Remove Section Image')), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
+    }, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Remove Section Image')), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+      src: section_image,
+      alt: section_image_alt || 'Image'
+    }), section_image_alt && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Alt Text:'), ' ', section_image_alt || section_image_title)), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
       onClick: open,
       icon: "upload",
       className: "editor-media-placeholder__button is-button is-default is-large"
@@ -226,6 +239,18 @@ function Edit({
     onChange: nextValue => setAttributes({
       col_id: nextValue
     })
+  }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.__experimentalInputControl, {
+    label: "Column Data AOS",
+    value: col_data_aos,
+    onChange: nextValue => setAttributes({
+      col_data_aos: nextValue
+    })
+  }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.__experimentalInputControl, {
+    label: "Column Data AOS Delay",
+    value: col_data_aos_delay,
+    onChange: nextValue => setAttributes({
+      col_data_aos_delay: nextValue
+    })
   })), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.PanelBody, {
     title: (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Image'),
     initialOpen: false
@@ -247,24 +272,41 @@ function Edit({
     onChange: nextValue => setAttributes({
       col_image_id: nextValue
     })
+  }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.__experimentalInputControl, {
+    label: "Column Image Data AOS",
+    value: col_image_data_aos,
+    onChange: nextValue => setAttributes({
+      col_image_data_aos: nextValue
+    })
+  }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.__experimentalInputControl, {
+    label: "Column Image Data AOS Delay",
+    value: col_image_data_aos_delay,
+    onChange: nextValue => setAttributes({
+      col_image_data_aos_delay: nextValue
+    })
   }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_2__.MediaUploadCheck, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_2__.MediaUpload, {
     onSelect: media => setAttributes({
       col_image: media.url,
-      col_image_alt: media.alt
+      col_image_alt: media.alt,
+      col_image_title: media.title?.rendered || media.title || ''
     }),
     type: "image",
     allowedTypes: ['image'],
     value: col_image,
     render: ({
       open
-    }) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, col_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
+    }) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, col_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
       isLink: true,
       isDestructive: true,
       onClick: () => setAttributes({
         col_image: '',
-        col_image_alt: ''
+        col_image_alt: '',
+        col_image_title: ''
       })
-    }, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Remove Col Image')), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
+    }, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Remove Col Image')), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+      src: col_image,
+      alt: col_image_alt || 'Default alt text'
+    }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, (0,_wordpress_i18n__WEBPACK_IMPORTED_MODULE_1__.__)('Alt Text:'), ' ', col_image_alt || col_image_title)), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_3__.Button, {
       onClick: open,
       icon: "upload",
       className: "editor-media-placeholder__button is-button is-default is-large"
@@ -289,10 +331,10 @@ function Edit({
     })
   }))), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("section", {
     ...(0,_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_2__.useBlockProps)()
-  }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
+  }, section_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: section_image,
-    alt: ""
-  }), console.log(section_image), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    alt: section_image_alt || 'Electrical Engineering Expert Witness'
+  }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     style: {
       display: 'flex'
     }
@@ -309,7 +351,7 @@ function Edit({
     }
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: col_image,
-    alt: "",
+    alt: col_image_alt || col_image_title,
     style: {
       width: '100%',
       height: 'auto'
@@ -416,14 +458,14 @@ function save({
   return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     ...blockProps
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("section", {
-    className: `position-relative ${attributes.section_class}`,
-    style: `padding:50px 0;${attributes.section_style}`,
+    className: `${attributes.section_class}`,
+    style: `${attributes.section_style}`,
     id: attributes.section_id
   }, attributes.section_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: attributes.section_image,
-    alt: attributes.section_image_alt,
-    className: `w-100 h-100 position-absolute bg-img ${attributes.section_image_class}`,
-    style: `top:0;left:0;object-fit:cover;pointer-events:none;${attributes.section_image_style}`
+    alt: attributes.section_image_alt || attributes.section_image_title,
+    className: attributes.section_image_class,
+    style: attributes.section_image_style
   }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_element__WEBPACK_IMPORTED_MODULE_2__.RawHTML, null, attributes.section_block), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: attributes.container_class,
     style: attributes.container_style,
@@ -436,17 +478,19 @@ function save({
     className: attributes.col_class,
     style: attributes.col_style,
     id: attributes.col_id,
-    "data-aos": "fade-up"
+    "data-aos": attributes.col_data_aos,
+    "data-aos-delay": attributes.col_data_aos_delay
   }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_1__.InnerBlocks.Content, null)), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
     className: attributes.col_image_class,
     style: attributes.col_image_style,
     id: attributes.col_image_id,
-    "data-aos": "fade-up"
+    "data-aos": attributes.col_image_data_aos,
+    "data-aos-delay": attributes.col_image_data_aos_delay
   }, attributes.col_image && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("img", {
     src: attributes.col_image,
-    alt: attributes.col_image_alt || '',
-    className: `${attributes.image_class}`,
-    style: `width:100%;height:auto;${attributes.image_style}`,
+    alt: attributes.col_image_alt || attributes.col_image_title,
+    className: attributes.image_class,
+    style: attributes.image_style,
     id: attributes.image_id
   }))))));
 }
@@ -543,7 +587,7 @@ module.exports = window["wp"]["i18n"];
   \************************/
 /***/ ((module) => {
 
-module.exports = /*#__PURE__*/JSON.parse('{"$schema":"https://schemas.wp.org/trunk/block.json","apiVersion":3,"name":"create-block/content-image","version":"0.1.0","title":"Content + Image Block","category":"widgets","icon":"smiley","description":"Example block scaffolded with Create Block tool.","example":{},"supports":{"html":false},"attributes":{"section_style":{"type":"string","default":""},"section_class":{"type":"string","default":""},"section_id":{"type":"string","default":""},"section_image":{"type":"string","default":null},"section_image_class":{"type":"string"},"section_image_style":{"type":"string"},"section_block":{"type":"string","default":""},"container_style":{"type":"string","default":""},"container_class":{"type":"string","default":"container"},"container_id":{"type":"string","default":""},"row_style":{"type":"string","default":""},"row_class":{"type":"string","default":"row justify-content-center flex-row-reverse"},"row_id":{"type":"string","default":""},"col_style":{"type":"string","default":""},"col_class":{"type":"string","default":"col-lg-6"},"col_id":{"type":"string","default":""},"col_image":{"type":"string","default":""},"col_image_style":{"type":"string","default":""},"col_image_class":{"type":"string","default":"col-lg-6"},"col_image_id":{"type":"string","default":""},"image_style":{"type":"string","default":""},"image_class":{"type":"string","default":""},"image_id":{"type":"string","default":""}},"textdomain":"content-image","editorScript":"file:./index.js","editorStyle":"file:./index.css","style":"file:./style-index.css","viewScript":"file:./view.js"}');
+module.exports = /*#__PURE__*/JSON.parse('{"$schema":"https://schemas.wp.org/trunk/block.json","apiVersion":3,"name":"create-block/content-image","version":"0.1.0","title":"Content + Image Block","category":"widgets","icon":"smiley","description":"Example block scaffolded with Create Block tool.","example":{},"supports":{"html":true},"attributes":{"section_style":{"type":"string","default":"padding:50px 0px;"},"section_class":{"type":"string","default":"position-relative"},"section_id":{"type":"string","default":""},"section_image":{"type":"string","default":null},"section_image_title":{"type":"string"},"section_image_alt":{"type":"string","default":null},"section_image_class":{"type":"string","default":"w-100 h-100 position-absolute bg-img"},"section_image_style":{"type":"string","default":"top:0;left:0;object-fit:cover;pointer-events:none;"},"section_block":{"type":"string","default":""},"container_style":{"type":"string","default":""},"container_class":{"type":"string","default":"container"},"container_id":{"type":"string","default":""},"row_style":{"type":"string","default":""},"row_class":{"type":"string","default":"row justify-content-center"},"row_id":{"type":"string","default":""},"col_style":{"type":"string","default":""},"col_class":{"type":"string","default":"col-lg-6"},"col_id":{"type":"string","default":""},"col_data_aos":{"type":"string","default":"fade-up"},"col_data_aos_delay":{"type":"string","default":""},"col_image":{"type":"string","default":""},"col_image_alt":{"type":"string","default":""},"col_image_title":{"type":"string","default":""},"col_image_style":{"type":"string","default":""},"col_image_class":{"type":"string","default":"col-lg-6"},"col_image_id":{"type":"string","default":""},"col_image_data_aos":{"type":"string","default":"fade-up"},"col_image_data_aos_delay":{"type":"string","default":"200"},"image_style":{"type":"string","default":"object-fit:cover;"},"image_class":{"type":"string","default":"w-100 h-auto"},"image_id":{"type":"string","default":""}},"textdomain":"content-image","editorScript":"file:./index.js","editorStyle":"file:./index.css","style":"file:./style-index.css","viewScript":"file:./view.js"}');
 
 /***/ })
 

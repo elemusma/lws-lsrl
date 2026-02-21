@@ -19,6 +19,7 @@ Version: 1.0
     --light-secondary: #e8edec;
     --text-shadow: 1px 1px 3px black;
     --text-shadow-white: 1px 1px 3px white;
+    --text-shadow-accent: 1px 1px 3px var(--accent-primary);
     --box-shadow: 2px 2px 3px rgba(0,0,0,.5);
   }
 

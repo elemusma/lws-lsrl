@@ -25,6 +25,15 @@ if ( ! defined( 'ABSPATH' ) ) {
  * @see https://developer.wordpress.org/reference/functions/register_block_type/
  */
 function create_block_content_cards_image_block_init() {
+	// Register the style handle used in block.json
+	// wp_register_style(
+	// 	'content-cards-image-style',
+	// 	get_theme_file_uri('/css/sections/content-cards-image.css'),
+	// 	array(),
+	// 	filemtime(get_theme_file_path('/css/sections/content-cards-image.css'))
+	// );
+	wp_enqueue_style('content-cards-image', get_theme_file_uri('/css/sections/content-cards-image.css'));
+	
 	register_block_type( __DIR__ . '/build' );
 }
 add_action( 'init', 'create_block_content_cards_image_block_init' );

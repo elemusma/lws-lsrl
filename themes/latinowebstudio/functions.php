@@ -247,7 +247,7 @@ add_shortcode( 'currentyear', 'current_year' );
 function lsrl_shortcode() {
   $phone = globalPhone(); // get phone number dynamically
     return do_shortcode('
-[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash for Your Land[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Want to Go to Market?[/button]
+[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash for Your Land[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Go to Market[/button]
         <div style="margin:15px 0px;">
             <span>Call or Text: </span>
             <a href="tel:+' . $phone . '" class="text-link d-inline-block phone">' . $phone . '</a>
