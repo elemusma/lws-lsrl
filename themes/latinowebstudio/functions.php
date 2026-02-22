@@ -247,7 +247,7 @@ add_shortcode( 'currentyear', 'current_year' );
 function lsrl_shortcode() {
   $phone = globalPhone(); // get phone number dynamically
     return do_shortcode('
-[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash for Your Land[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Go to Market[/button]
+[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash Offer[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Go to Market[/button]
         <div style="margin:15px 0px;">
             <span>Call or Text: </span>
             <a href="tel:+' . $phone . '" class="text-link d-inline-block phone">' . $phone . '</a>
@@ -631,3 +631,36 @@ function global_phone_text_shortcode() {
     return globalPhone();
 }
 add_shortcode('global_phone_text', 'global_phone_text_shortcode');
+
+// Shortcode: [global_phone]
+function lws_global_phone_shortcode() {
+
+    if ( function_exists('globalPhone') ) {
+        $phone = globalPhone();
+        return esc_html($phone);
+    }
+
+    return '';
+}
+
+add_shortcode('global_phone', 'lws_global_phone_shortcode');
+
+// Shortcode: [global_phone]
+function lws_global_email_shortcode() {
+
+    if ( function_exists('companyEmail') ) {
+        $phone = companyEmail();
+        return esc_html($phone);
+    }
+
+    return '';
+}
+
+add_shortcode('global_email', 'lws_global_email_shortcode');
+
+// echo do_shortcode('[global_email]');
+
+function lsrl_name_shortcode() {
+    return esc_html( get_bloginfo( 'name' ) );
+}
+add_shortcode( 'site_name', 'lsrl_name_shortcode' );

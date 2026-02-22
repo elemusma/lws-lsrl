@@ -145,6 +145,10 @@ hr.text-white {
   height: 15px;
 }
 
+.border-radius {
+  border-radius: 8px;
+}
+
 /* content */
 .alignleft {
   float: left;

@@ -56,7 +56,8 @@ echo '<div class="d-md-none" style="height:10px;"></div>';
 
 echo '<a href="' . home_url() . '" title="Go back to the Home of Down to Earth Investments">';
 echo '<div style="width:100%;pointer-events:none;" id="logoMain">';
-echo logoSVG();
+// echo logoSVG();
+echo wp_get_attachment_image(logoImg()['id'], 'full', false, array( 'alt' => get_bloginfo( 'name' ) . ' - ' . get_bloginfo( 'description' ), 'style' => 'width:100%;height:auto;','class'=>'skip-lazy' ));
 echo '</div>';
 echo '</a>';
 echo '</div>';
@@ -68,7 +69,7 @@ wp_nav_menu(array(
     'menu_class'=>'menu list-unstyled d-lg-flex h-100 align-items-center justify-content-end m-0'
 ));
 
-echo '<a class="btn-main" href="/#get-cash" title="Get Cash for Your Land">Get Cash For Your Property</a>';
+echo '<a class="btn-main" href="/#get-cash" title="Get Cash for Your Land">Get Cash Offer</a>';
 
 echo '</div>';
 
