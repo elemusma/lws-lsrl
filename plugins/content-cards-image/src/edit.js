@@ -93,6 +93,8 @@ export default function Edit( { attributes, setAttributes } ) {
   		img_title: '',  // Add this line
 		img_class: 'w-100 h-auto',
 		img_style: 'object-fit:contain;',
+		content_only_class:'',
+		content_only_style:'',
 		title: '',
 		title_tag: 'h2',
 		title_class: 'h6 bold',
@@ -619,7 +621,33 @@ export default function Edit( { attributes, setAttributes } ) {
 										/>
 									</div>
 									<div style={ { paddingLeft: '50px' } }>
-										
+										<div style={{display:'flex'}}>
+										<InputControl
+											label="Content Only Class"
+											value={ column.content_only_class }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'content_only_class',
+													content
+												)
+											}
+											placeholder={ __( 'Content Only Class' ) }
+										/>
+										<InputControl
+											label="Content Only Style"
+											value={ column.content_only_style }
+											onChange={ ( content ) =>
+												updateColumn(
+													index,
+													'content_only_style',
+
+													content
+												)
+											}
+											placeholder={ __( 'Content Only Style' ) }
+										/>
+										</div>
 										<div style={{display:'flex'}}>
 										<InputControl
 											label="Title Class"

@@ -106,7 +106,7 @@ export default function save( { attributes } ) {
 											<RawHTML>{ column.code_block }</RawHTML>
 										)}
 										{(column.title || column.content) && (
-										<div className='' style={{}}>
+										<div className={`${column.content_only_class}`} style={{...parseInlineStyles(column.content_only_style)}}>
 										
 										{React.createElement(TitleTag, 
 											{

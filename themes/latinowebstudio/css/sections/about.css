@@ -32,3 +32,36 @@
     border-top: 9px solid #c2b59b;
     border-bottom: 9px solid #c2b59b;
 }
+
+.team .bg-white.text-center.box-shadow {
+padding-top: 90px !important;
+    width: 90% !important;
+    transform: translate(0%, -70px) !important;
+}
+
+.team-vertical {
+    position: absolute;
+    height: 80%;
+    width: 2px;
+    background: var(--accent-primary);
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, 0px);
+}
+
+.team-horizontal {
+    position: absolute;
+    height: 2px;
+    width: 80%;
+    background: var(--accent-primary);
+    top: 46.5%;
+    left: 10%;
+    transform: translate(0%, -50%);
+}
+
+.enduring-quality-text {
+margin-top:15px;
+background:rgba(0,0,0,.5);
+color:white;
+padding:15px 25px;
+}

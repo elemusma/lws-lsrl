@@ -7,10 +7,11 @@ input.gform_button.button {
   transition: all 0.25s ease-in-out;
   /* max-width: 250px; */
   width: 100%;
-  font-family: 'pontiacbold';
+  /* font-family: 'pontiacbold'; */
   /* margin: auto; */
+  font-weight:700;
   cursor: pointer;
-  color: white;
+  /* color: white; */
   box-shadow: none !important;
 }
 

@@ -5,21 +5,21 @@ span.wc-block-components-button__text {
     transition: all .25s ease-in-out;
     display: inline-block;
     text-decoration: none;
-    color: white;
+    color:black !important;
     text-shadow:none;
     border-radius: 25px;
     text-transform: uppercase;
     border:1px solid var(--accent-primary);
-    font-family: 'pontiacbold';
     margin: 10px;
+    font-weight:700;
     box-shadow:var(--box-shadow);
 }
 
 .btn-main:hover, 
 span.wc-block-components-button__text:hover
 {
-    background: var(--accent-secondary-hover);
-    border-color:var(--accent-secondary-hover);
+    background: var(--accent-secondary);
+    border-color:var(--accent-secondary);
     text-decoration: none;
     color:black;
 }
@@ -30,8 +30,8 @@ span.wc-block-components-button__text:hover
     color:black;
 }
 .btn-main.white:hover {
-    background:var(--accent-primary);
-    border-color:var(--accent-primary);
+    background:var(--accent-quaternary);
+    border-color:var(--accent-quaternary);
     color:white!important;
 }
 .btn-main.outline {

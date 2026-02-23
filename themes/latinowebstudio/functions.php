@@ -19,8 +19,8 @@ if(is_page(8)){
 }
 
 // }
+
 if(is_page_template('templates/about.php')){
-wp_enqueue_style('about-custom', get_theme_file_uri('/css/sections/about.css'));
 wp_enqueue_style('intro', get_theme_file_uri('/css/sections/intro.css'));
 }
 if( is_page_template('templates/content-page.php' ) ){
@@ -55,6 +55,8 @@ add_action('wp_enqueue_scripts', 'lsrl_stylesheets');
 function lsrl_stylesheets_footer() {
 
 wp_enqueue_style('nav-mobile', get_theme_file_uri('/css/sections/nav-mobile.css'));
+wp_enqueue_style('accordions', get_theme_file_uri('/css/sections/accordions.css'));
+wp_enqueue_style('about-custom', get_theme_file_uri('/css/sections/about.css'));
 // wp_enqueue_style('style-footer', get_theme_file_uri('/css/style-footer.css'));
 // owl carousel
 // wp_enqueue_style('owl.carousel.min', get_theme_file_uri('/owl-carousel/owl.carousel.min.css'));
@@ -247,7 +249,7 @@ add_shortcode( 'currentyear', 'current_year' );
 function lsrl_shortcode() {
   $phone = globalPhone(); // get phone number dynamically
     return do_shortcode('
-[button href="/contact/" class="d-lg-hidden d-inline-block small contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash Offer[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block small cv-download" style="margin:0px 10px;"]Go to Market[/button]
+[button href="/contact/" class="d-lg-hidden d-inline-block contact-expert" style="margin-left:0px;margin-rigth:30px;"]Get Cash Offer[/button][button href="/request-cv/" target="_blank" class="white d-lg-hidden d-inline-block cv-download" style="margin:0px 10px;"]Go to Market[/button]
         <div style="margin:15px 0px;">
             <span>Call or Text: </span>
             <a href="tel:+' . $phone . '" class="text-link d-inline-block phone">' . $phone . '</a>

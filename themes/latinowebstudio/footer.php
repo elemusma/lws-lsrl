@@ -11,8 +11,8 @@ echo '<section class="" style="">';
 echo '<div class="container">';
 echo '<div class="row justify-content-between align-items-center" style="padding-bottom:175px;">';
 
-echo '<div class="col-12">';
-echo do_shortcode('[divider class="w-100" style="padding-bottom:50px;"]');
+echo '<div class="col-12" style="padding:50px 0px;">';
+echo do_shortcode('[divider class="w-100" style=""]');
 echo '</div>';
 
 echo '<div class="col-md-4 text-white">';
