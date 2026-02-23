@@ -1,18 +1,18 @@
-=== Breeze - WordPress Cache Plugin ===
+=== Breeze Cache ===
 Contributors: Cloudways
 Tags: cache,caching, performance, wp-cache, cdn
 Requires at least: 6.0
-Tested up to: 6.5.2
+Tested up to: 6.9
 Requires PHP: 7.4
-Stable tag: 2.1.11
+Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
-Breeze is a WordPress Caching Plugin developed by Cloudways. Breeze uses advance caching systems to improve WordPress loading times exponentially.
+Breeze is a caching plugin developed by Cloudways. Breeze uses advance caching systems to improve site loading times exponentially.
 
 == Description ==
 
-Breeze is a free, simple (yet powerful) and user-friendly WordPress Caching Plugin developed by the Cloudways team. It offers various options to optimize WordPress performance at various levels. It works equally great with WordPress, WordPress with WooCommerce and WordPress Multisite.
+Breeze is a free, simple (yet powerful) and user-friendly caching plugin developed by the Cloudways team. It offers various options to optimize WordPress site performance at various levels. It works equally great with WordPress, WordPress with WooCommerce and WordPress Multisite.
 
 Breeze excels in the following areas:
 
@@ -22,7 +22,7 @@ Breeze excels in the following areas:
 
 * **Simplicity:** Breeze is designed to be simple for all users. Just install and activate the plugin and you'll see the results instantaneously.
 
-What makes Breeze WordPress Cache Plugin awesome is that it comes with builtin support for Varnish. If Varnish is not installed on your servers, Breeze will utilize its internal cache mechanism to boost up your WordPress site performance.
+What makes Breeze Cache Plugin awesome is that it comes with builtin support for Varnish. If Varnish is not installed on your servers, Breeze will utilize its internal cache mechanism to boost up your WordPress site performance.
 
 **FEATURES**
 
@@ -35,7 +35,7 @@ What makes Breeze WordPress Cache Plugin awesome is that it comes with builtin s
 * Load images when they're visible, not all at once, for faster webpage performance by implementing lazy loading for images.
 * Load JS files with deferred loading, enhancing overall performance.
 * Supercharge your site's speed with Breeze's advanced preloading features: load fonts early, quicken link clicks, and enhance DNS requests for a seamless user experience.
-* Master real-time interactions with Breeze's Heartbeat API management. Fine-tune notifications, sales data, autosaves, and more to optimize WordPress performance by adjusting API call frequencies.
+* Master real-time interactions with Breeze's Heartbeat API management. Fine-tune notifications, sales data, autosaves, and more to optimize WordPress website performance by adjusting API call frequencies.
 * Effortlessly manage Breeze settings using Import/Export. Download your configurations as a .json file for backup, or effortlessly import existing settings to quickly fine-tune your optimization.
 
 
@@ -52,7 +52,7 @@ What makes Breeze WordPress Cache Plugin awesome is that it comes with builtin s
 = To install the plugin manually: =
 * Download and unzip the plugin package - breeze.1.0.0.zip
 * Upload the breeze to /wp-content/plugins/
-* Activate the plugin through the 'Plugins' menu in WordPress
+* Activate the plugin through the 'Plugins' menu in WordPress Dashboard
 * Access Breeze from WordPress Admin > Settings > Breeze
 
 == Frequently Asked Questions ==
@@ -67,7 +67,7 @@ To install the plugin via WordPress Dashboard
 To install the plugin manually
 1. Download and unzip the plugin package - breeze.1.0.0.zip
 2. Upload the /breeze to /wp-content/plugins/
-3. Activate the plugin through the 'Plugins' menu in WordPress
+3. Activate the plugin through the 'Plugins' menu in WordPress Dashboard
 4. Access Breeze from WordPress Admin > Settings > Breeze
 
 = Does Breeze support Varnish and to what extent? =
@@ -82,11 +82,11 @@ Breeze is fully compatible with WooCommerce, out of the box. It does not require
 
 Breeze is fully compatible with WordPress Multisite without the need for any extra configuration.
 
-= How does Breeze handle WordPress multisite? =
+= How does Breeze handle WordPress Mltisite? =
 
-Breeze handles all WordPress multisite instances globally. All the settings for multisite are now handled on the network level.
+Breeze handles all WordPress Multisite instances globally. All the settings for multisite are now handled on the network level.
 
-= Is Breeze compatible with other WordPress Cache plugins? =
+= Is Breeze compatible with other WordPress cache plugins? =
 
 We DO NOT recommend using two WordPress cache plugins at the same time on any WordPress website.
 We strongly recommend that you use Breeze as the only cache plugin for your website. If there are any other cache plugins installed, please ensure that you have disabled them prior to proceeding with the Breeze installation.
@@ -159,6 +159,205 @@ Yes. The process of setting up CloudFlare with Breeze is easy. Check out the fol
 Using Gzip, Breeze compresses the request files, further reducing the size of the download files and speeding up the user experience.
 
 == Changelog ==
+
+= 2.3.1 =
+
+* Fix: Varnish purge success notice now shows the correct message instead of an empty notice.
+
+= 2.3.0 =
+
+* Fix: URLs excluded from cache that contain hash (#) fragments are now correctly skipped during preload.
+* Fix: Modified regex to better fetch images through CSS classes.
+* Fix: Corrected warnings and errors to follow WordPress coding rules.
+* Fix: Resolved SyntaxError occurring when the native lazyload option is enabled.
+* Fix: Resolved a "Double-Compression" conflict on WordPress Multisite environments using Varnish. Breeze now detects the X-Varnish header and intelligently bypasses PHP-level Gzip to prevent malformed HTML streams.
+* Fix: Prevented redundant Cloudflare cache purge requests from triggering multiple times during a single post update.
+* Fix: Resolved an issue where the "Preload Links" feature caused WooCommerce cart items to be removed automatically upon hovering over the "Remove" button.
+* Fix: Improved screen detection logic for the Breeze back‑end CSS file, ensuring it loads correctly in all relevant admin contexts.
+* Fix: Removed the multisite sub‑site limit. The system previously enforced a default maximum of 100 sub‑sites.
+* Improved: Refined .htaccess rule syntax and underlying logic. In certain rare cases, the previous implementation could trigger a 500 server error.
+* Improved: Optimized performance for post updates and WooCommerce order processing by offloading Cloudflare cache purges to a background cron job.
+* Added: Control PHP Gzip compression programmatically with breeze_should_gzip_output filter
+* Added: Introduced breeze_cf_purge_type_on_post_update and breeze_cf_purge_type_on_order_update filters to programmatically toggle between background (cron) and synchronous (default) purging.
+* Added: Introduced the breeze_purge_post_cache_urls filter, allowing developers to programmatically add extra URLs to the purge queue. When using this filter, ensure all custom URLs are returned with a trailing slash (/).
+
+= 2.2.24 =
+
+* Improved: Added caching for database queries to enhance performance and reduce database load.
+* Fix: Resolved WordPress Coding Standards warnings and errors
+
+= 2.2.23 =
+
+* Fix: Plugin name now complies with WordPress plugin directory guidelines.
+* Fix: API keys with insufficient strength are now rejected, and a visual strength indicator is shown to guide users.
+* Fix: The cache‑clearing API now validates API keys only when provided via the 'Authorization: Bearer <•••key•••>' header.
+* Fix: Enhanced security measures applied to the clear‑cache API endpoint.
+
+= 2.2.22 =
+
+* Fix: Improved security by addressing a low-priority issue.
+
+= 2.2.21 =
+
+* Improved: Simplified CSS and JS cache file names with version-based identification for easier management.
+
+= 2.2.20 =
+
+* Improved: Added proper verification process for Varnish cache purge.
+* Improved: Updated CSS minification library and refined CSS cleaning rules for better optimization.
+* Added: Cloudflare cache now automatically purges when the "Clear Cache" action is triggered from post edit links.
+
+= 2.2.19 =
+
+* Fixed: Video lazy loading conflicts by ensuring compatibility with native lazy load and excluding WordPress [video] short codes from lazy loading.
+* Improved: File and folder permission handling logic – missing file/folder checks will no longer appear when the cache system is disabled.
+
+= 2.2.18 =
+
+* Improved: Security handling for JavaScript fetch and XHR requests to ensure safer data communication.
+* Added: Lazy Load library instance is now available on the window object for users with custom setups.
+* Improved: Purge Cron Job now also clears Cloudflare cache to ensure complete cache invalidation
+
+= 2.2.17 =
+
+* Enhancement: Added a Purge Progress notification to clearly inform users when a purge action is actively running.
+
+= 2.2.16 =
+
+* Improved: Increased expected API response timeout from 4 seconds to 30 seconds to better handle delayed responses.
+
+= 2.2.15 =
+
+* Improved: Updated handling and response messages for Cloudflare cache purge requests to provide clearer feedback and improve transparency.
+
+= 2.2.14 =
+
+* Fix: Resolved a critical Cross-Site Request Forgery (CSRF) vulnerability by implementing nonce validation.
+* Fix: Patched a Broken Access Control (BAC) vulnerability to ensure users cannot perform actions outside of their assigned capabilities.
+
+= 2.2.13 =
+
+* Fix: Addressed compatibility issues with Elementor and WooCommerce variable products. Also resolved issues caused by improper HTML entity decoding to ensure correct JavaScript content rendering and improved plugin stability.
+
+= 2.2.12 =
+
+* Fix: Resolved an issue where Lazy Load and Cross-Origin options caused HTML entities to remain encoded on the front-end.
+* Fix: Corrected a bug where the breeze_clear_remote_gravatar cron event was not removed upon Breeze plugin uninstallation.
+
+= 2.2.11 =
+
+* Fix: Cache was not purged automatically during Breeze plugin updates.
+* Add: Clearing Elementor cache will also clear Breeze cache.
+* Changed: Updated lazy load initialization and improved iframe handling to better align with browser-native lazy loading behavior.
+
+= 2.2.10 =
+
+* Added: native lazy loading support for iframe elements.
+* Added: Implemented lazy load support for video elements with multiple source tags.
+* Added: Introduced .webp format support for lazy loading images.
+* Changed: Switched from lazysizes to Vanilla LazyLoad, reducing the lazy load library's footprint.
+* Improved: Updated lazy load placeholders to use Base64-encoded inline images for improved performance.
+
+= 2.2.9 =
+
+* Fix: PHP error no longer occurs when a new comment is submitted.
+* Enhancement: Breeze cache now automatically clears after one or more plugin updates to ensure accurate content rendering.
+
+= 2.2.8 =
+
+* Fix: The cron event breeze_purge_cache will now be created when activating the Breeze plugin.
+* Fix: The cron event breeze_purge_cache will now be removed from single site and multi-site upon Breeze plugin deactivation.
+
+= 2.2.7 =
+
+* Add: Breeze plugin cache now automatically purges when updating global Header/Footer in Elementor.
+
+= 2.2.6 =
+
+* Fix: PHP warning fixed on comment status change.
+
+= 2.2.5 =
+
+* Improve: Improve CF and Varnish cache purge for custom permalinks /%category%/%postname%/.
+* Improve: Enhance Varnish cache validation to prevent multiple HTTP requests.
+* Optimize: Optimize the object cache flush system to purge only the relevant cache.
+
+= 2.2.4 =
+
+* Fix: The PHP warning related to autoload of the MobileDetect library has been fixed.
+
+= 2.2.3 =
+
+* Fix: Added support for custom headers array.
+* Fix: Homepage cache will now be automatically purged when updating a POST/CPT.
+
+= 2.2.2 =
+
+* Fix: Resolved PHP warnings for Host Files Locally feature.
+* Fix: The Breeze configuration file is now updated upon saving settings rather than being deleted and re-created. In multisite environments, the file will only be removed when switching from 'Custom Settings' to 'Inherit.' Additionally, uninstalling the plugin will delete both the configuration file and its containing folder.
+* Fix: Using  Purge Internal Cache no longer results in multiple query parameters being appended to the current URL.
+* Fix: Updating a Page, Post, or Custom Post Type (CPT) will now clear the local cache specifically for the updated content, its associated taxonomies, and the relevant archive page, if applicable.
+
+= 2.2.1 =
+
+* Fix: Enhance the functionality to support multisite networks with over 100 subsites seamlessly.
+* Fix: Issues with the locally hosted font feature affecting font rendering have been identified and fixed.
+
+= 2.2.0 =
+
+* Fix: To prevent caching of Cloudflare firewall headers, use Cache-Control headers and Page Rules.
+* Fix: The issue with incorrect default options being saved for HTML optimization Tab settings has been fixed.
+* Improved: Enhanced cache purging messages to display the purge status for each module individually.
+* Improved: The Breeze error notice for file/folder permission issues and missing files/folders will no longer appear when the cache system is OFF.
+* Fix: Resolved an issue where links remained cached even after being added to the 'Never Cache URL(s)' list.
+
+= 2.1.20 = 
+
+* Fix: Resolved an issue where the lazy load library was being loaded even when not enabled. This occurred in rare instances.
+* Fix: Enhanced Lazy-Load functionality to prevent conflicts with the "Elementor" and "EWWW Image Optimizer" plugins.
+* Fix: Updated the Heartbeat option range to include "Default," "30 to 120 seconds," and "Disable" settings.
+* Fix: Pages/Posts and Custom Post Types containing the Gutenberg block "Latest Comments" will now have their cache reset when a comment is added, deleted, or edited. The comment must be approved for the cache reset to occur.
+* Fix: Enhanced validation for URLs added to the “Never Cache URL(s)” option.
+
+= 2.1.19 =
+
+* Fix: The 'Never cache URL(s)' option is now compatible with URLs that contain non-ASCII characters.
+* Fix: Enhance the plugin update process by implementing new functionality to remove related cron jobs automatically.
+
+
+= 2.1.18 =
+
+* Fix: By setting WooCommerce pages as the homepage, all website pages were excluded from caching. This issue has now been successfully fixed for both the single site and multisite environments.
+
+= 2.1.17 =
+
+* Fix: Errors have been resolved during the activation, deactivation, updating, and deletion of plugins and themes from ManageWP.
+* Fix: The 'Host Google Fonts Locally' feature has been improved to prevent PHP warnings.
+* Fix: Improved multi-site sub-directory sub-site detection, ensuring the correct handling of blog_id for cache storage and cache purging.
+
+= 2.1.16 =
+
+* Fix: Refactor the handling of the woocommerce_after_product_object_save hook to ensure it is only executed once per request when  products  updated via the  API.
+
+= 2.1.15 =
+
+* Fix: Addressed vulnerabilities related to Broken Access Control and Cross-Site Scripting (XSS) as discovered by Patchstack.
+
+= 2.1.14 =
+
+* Fix: The JavaScript warning related to missing href attributes for a link has been fixed.
+* Fix: The cache issue has been fixed when updating a post on any sub-blog in the Multisite environment.
+
+
+= 2.1.13 =
+
+* Fix: The cache will be purged automatically when a scheduled post's status changes to 'Published'.
+* Fix: Update the reference link in the Knowledge Base article under the 'Never Cache URL(s)' option in the ADVANCED OPTIONS tab.
+
+= 2.1.12 =
+
+* Add: Shop Managers can now use Purge All Cache option to clear website cache.
+* Fix: Excluded wp-login.php from preload feature that fixes the problem with unwanted user logouts.
 
 = 2.1.11 =
 
@@ -648,4 +847,7 @@ Update Breeze through WordPress Admin > Dashboard >Updates. The settings will re
 
 == Requirements ==
 
+
 PHP 7.4, PHP 8 recommended for better performance, WordPress 6.0+
+
+

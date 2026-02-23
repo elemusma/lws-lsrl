@@ -10,3 +10,7 @@
 footer ul.sub-menu, footer .dropdown-arrow {
     display: none;
 }
+
+footer a.text-link.d-inline-block.phone{
+    color:var(--accent-quaternary);
+}

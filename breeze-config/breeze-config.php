@@ -85,14 +85,6 @@
   ),
   'wp-user-roles' => 
   array (
-    0 => 'administrator',
-    1 => 'editor',
-    2 => 'author',
-    3 => 'contributor',
-    4 => 'subscriber',
-    5 => 'specific_client_role',
-    6 => 'wpseo_manager',
-    7 => 'wpseo_editor',
   ),
   'enabled-lazy-load' => '0',
   'use-lazy-load-native' => '0',

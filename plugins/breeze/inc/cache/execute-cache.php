@@ -218,7 +218,57 @@ if ( ! $check_exclude ) {
 	breeze_serve_cache( $filename, $breeze_current_url_path, $X1, $devices );
 	\ob_start( 'Breeze_Cache_Init\breeze_cache' );
 } else {
+
 	header( 'Cache-Control: no-cache' );
+}
+
+/**
+ * Determine whether PHP gzip should be bypassed for multisite + Varnish.
+ *
+ * @return bool
+ */
+function breeze_should_bypass_php_gzip() {
+	if ( ! is_multisite() ) {
+		return false;
+	}
+
+	if ( empty( $_SERVER['HTTP_X_VARNISH'] ) ) {
+		return false;
+	}
+
+	if ( empty( $_SERVER['HTTP_X_APPLICATION'] ) ) {
+		return false;
+	}
+
+	$application = trim( (string) $_SERVER['HTTP_X_APPLICATION'] );
+	if ( '' === $application || 'varnishpass' === $application || 'bypass' === $application ) {
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Determine whether Breeze should gzip responses at the PHP layer.
+ *
+ * @return bool
+ */
+function breeze_should_gzip_output() {
+	$setting_enabled = ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] );
+	$should_gzip     = $setting_enabled;
+
+	$ini_output_compression = (string) ini_get( 'zlib.output_compression' );
+	$array_values           = array( '1', 'On', 'on' );
+	if ( in_array( $ini_output_compression, $array_values, true ) ) {
+		$should_gzip = false;
+	}
+
+	$should_bypass = breeze_should_bypass_php_gzip();
+	if ( $should_bypass ) {
+		$should_gzip = false;
+	}
+
+	return (bool) apply_filters( 'breeze_should_gzip_output', $should_gzip, $setting_enabled, $should_bypass, $ini_output_compression );
 }
 
 /**
@@ -232,6 +282,10 @@ if ( ! $check_exclude ) {
  */
 function breeze_cache( $buffer, $flags ) {
 	global $breeze_user_logged, $breeze_use_cache_system;
+
+	if ( constant_donotcachepage_found() ) {
+		return $buffer;
+	}
 	// No cache for pages without 200 response status
 	if ( http_response_code() !== 200 ) {
 		return $buffer;
@@ -259,11 +313,8 @@ function breeze_cache( $buffer, $flags ) {
 	// Filter to modify cache buffer before caching
 	$buffer = apply_filters( 'breeze_cache_buffer_before_processing', $buffer );
 
-	global $wp_filesystem, $breeze_current_url_path;
-	if ( empty( $wp_filesystem ) ) {
-		require_once( ABSPATH . '/wp-admin/includes/file.php' );
-		WP_Filesystem();
-	}
+	global $breeze_current_url_path;
+	$wp_filesystem = breeze_get_filesystem();
 
 	$blog_id_requested = isset( $GLOBALS['breeze_config']['blog_id'] ) ? $GLOBALS['breeze_config']['blog_id'] : 0;
 	$cache_base_path   = breeze_get_cache_base_path( false, $blog_id_requested );
@@ -278,6 +329,10 @@ function breeze_cache( $buffer, $flags ) {
 
 	$modified_time = time(); // Make sure modified time is consistent
 
+	$is_cross_origin_activated = false;
+	if ( isset( $GLOBALS['breeze_config']['cache_options']['breeze-cross-origin'] ) && filter_var( $GLOBALS['breeze_config']['cache_options']['breeze-cross-origin'], FILTER_VALIDATE_BOOLEAN ) ) {
+		$is_cross_origin_activated = filter_var( $GLOBALS['breeze_config']['cache_options']['breeze-cross-origin'], FILTER_VALIDATE_BOOLEAN );
+	}
 	// Lazy load implementation
 	if ( class_exists( 'Breeze_Lazy_Load' ) ) {
 		if ( isset( $GLOBALS['breeze_config'] ) ) {
@@ -298,7 +353,7 @@ function breeze_cache( $buffer, $flags ) {
 	}
 
 	// Cross-origin safe link functionality
-	if ( isset( $GLOBALS['breeze_config']['cache_options']['breeze-cross-origin'] ) && filter_var( $GLOBALS['breeze_config']['cache_options']['breeze-cross-origin'], FILTER_VALIDATE_BOOLEAN ) ) {
+	if ( true === $is_cross_origin_activated ) {
 
 		// Buffer encoding
 		if ( version_compare( PHP_VERSION, '8.2.0', '<' ) ) {
@@ -312,7 +367,13 @@ function breeze_cache( $buffer, $flags ) {
 		}
 		// Regular expression pattern to match anchor (a) tags
 		$pattern = '/<a\s+(.*?)>/si';
-		$buffer  = preg_replace_callback( $pattern, 'breeze_cc_process_match', $buffer );
+		$buffer  = preg_replace_callback(
+			$pattern,
+			function ( $matches ) {
+				return breeze_cc_process_match( $matches );
+			},
+			$buffer
+		);
 
 		// Buffer decoding.
 		$buffer = mb_decode_numericentity( $buffer, array( 0x80, 0x10FFFF, 0, ~0 ), 'UTF-8' );
@@ -431,7 +492,8 @@ function breeze_cache( $buffer, $flags ) {
 	$is_suffix = breeze_currency_switcher_cache();
 
 	if ( strpos( $breeze_current_url_path, '_breeze_cache_' ) !== false ) {
-		if ( ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] ) && function_exists( 'gzencode' ) ) {
+		$should_gzip = function_exists( 'gzencode' ) && breeze_should_gzip_output();
+		if ( $should_gzip ) {
 
 			$wp_filesystem->put_contents( $path . breeze_mobile_detect() . hash( 'sha512', $breeze_current_url_path . '/index.gzip.html' ) . $is_suffix . '.html', $data );
 			$wp_filesystem->touch( $path . breeze_mobile_detect() . hash( 'sha512', $breeze_current_url_path . '/index.gzip.html' ) . $is_suffix . '.html', $modified_time );
@@ -447,22 +509,33 @@ function breeze_cache( $buffer, $flags ) {
 	//set cache provider header if not exists cache file
 	header( 'Cache-Provider:CLOUDWAYS-CACHE-' . $X1 . 'C' );
 	header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s', $modified_time ) . ' GMT' );
+	if (
+		! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] ) &&
+		breeze_should_bypass_php_gzip()
+	) {
+		header( 'Vary: Accept-Encoding' );
+	}
 
-	if ( function_exists( 'ob_gzhandler' ) && ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] ) ) {
-		$ini_output_compression = ini_get( 'zlib.output_compression' );
-		$array_values           = array( '1', 'On', 'on' );
-		if ( in_array( $ini_output_compression, $array_values ) ) {
+	if ( function_exists( 'ob_gzhandler' ) && breeze_should_gzip_output() ) {
+		if ( defined( 'RedisCachePro\Version' ) ) {
 			return $buffer;
-		} else {
-			if ( defined( 'RedisCachePro\Version' ) ) {
-				return $buffer;
-			} else {
-				return ob_gzhandler( $buffer, $flags );
-			}
 		}
+
+		return ob_gzhandler( $buffer, $flags );
 	} else {
 		return $buffer;
 	}
+}
+
+/**
+ * Check for the constant woocommerce and other plugins declares.
+ */
+function constant_donotcachepage_found() {
+	if ( ! defined( 'DONOTCACHEPAGE' ) || ! DONOTCACHEPAGE ) {
+		return false;
+	}
+
+	return ! apply_filters( 'breeze_override_donotcachepage', false );
 }
 
 /**
@@ -499,7 +572,8 @@ function breeze_serve_cache( $filename, $breeze_current_url_path, $X1, $opts ) {
 		return;
 	}
 	$is_suffix = breeze_currency_switcher_cache();
-	if ( function_exists( 'gzencode' ) && ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] ) ) {
+	$should_gzip = function_exists( 'gzencode' ) && breeze_should_gzip_output();
+	if ( $should_gzip ) {
 		$file_name = hash( 'sha512', $filename . '/index.gzip.html' ) . $is_suffix . '.html';
 	} else {
 		$file_name = hash( 'sha512', $filename . '/index.html' ) . $is_suffix . '.html';
@@ -523,7 +597,7 @@ function breeze_serve_cache( $filename, $breeze_current_url_path, $X1, $opts ) {
 			$client_support_gzip = true;
 
 			//check gzip request from client
-			if ( isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) && ( strpos( $_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip' ) === false || strpos( $_SERVER['HTTP_ACCEPT_ENCODING'], 'deflate' ) === false ) ) {
+			if ( empty( $_SERVER['HTTP_ACCEPT_ENCODING'] ) || false === stripos( $_SERVER['HTTP_ACCEPT_ENCODING'], 'gzip' ) ) {
 				$client_support_gzip = false;
 			}
 
@@ -532,18 +606,24 @@ function breeze_serve_cache( $filename, $breeze_current_url_path, $X1, $opts ) {
 					header( $header_name . ': ' . $header_value );
 				}
 			}
+			if ( ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] )
+				&& breeze_should_bypass_php_gzip() ) {
+				header( 'Vary: Accept-Encoding' );
+			}
 
-			if ( $client_support_gzip && function_exists( 'gzdecode' ) && ! empty( $GLOBALS['breeze_config']['cache_options']['breeze-gzip-compression'] ) ) {
+			if ( $client_support_gzip && function_exists( 'gzdecode' ) && breeze_should_gzip_output() ) {
 				//if file is zip
 
 				$content = gzencode( $datas['body'], 9 );
 				header( 'Content-Encoding: gzip' );
 				header( 'Content-Length: ' . strlen( $content ) );
 				header( 'Vary: Accept-Encoding' );
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Binary gzipped content cannot be escaped
 				echo $content;
 			} else {
 				header( 'Content-Length: ' . strlen( $datas['body'] ) );
 				//render page cache
+				// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Cached HTML content from WordPress
 				echo $datas['body'];
 			}
 			exit;
@@ -600,7 +680,10 @@ function check_exclude_page( $opts_config, $current_url ) {
 
 					$exclude_url = ltrim( $exclude_url, 'https:' );
 					$current_url = ltrim( $current_url, 'https:' );
-					if ( mb_strtolower( $exclude_url ) === mb_strtolower( $current_url ) ) {
+					if (
+						mb_strtolower( $exclude_url ) === mb_strtolower( $current_url ) ||
+						br_trailingslashit( mb_strtolower( $exclude_url ) ) === br_trailingslashit( mb_strtolower( $current_url ) )
+					) {
 						return true;
 					}
 				}
@@ -611,7 +694,12 @@ function check_exclude_page( $opts_config, $current_url ) {
 	return false;
 }
 
-
+function br_trailingslashit( $value ): string {
+	return br_untrailingslashit( $value ) . '/';
+}
+function br_untrailingslashit( $value ): string {
+	return rtrim( $value, '/\\' );
+}
 /**
  * Used to check for regexp exclude pages
  *
@@ -623,6 +711,7 @@ function check_exclude_page( $opts_config, $current_url ) {
  *
  */
 function exec_breeze_check_for_exclude_values( $needle = '', $haystack = array() ) {
+
 	if ( empty( $needle ) || empty( $haystack ) ) {
 		return array();
 	}
@@ -641,7 +730,6 @@ function exec_breeze_check_for_exclude_values( $needle = '', $haystack = array()
 
 	return $is_string_in_array;
 }
-
 
 /**
  * Function used to determine if the excluded URL contains regexp
@@ -689,3 +777,57 @@ function exec_breeze_file_match_pattern( $file_url, $pattern ) {
 	return $result;
 }
 
+/**
+ * Preg replace callback function for anchor handling
+ *
+ * @param $match
+ *
+ * @return string
+ */
+function breeze_cc_process_match( $match ) {
+	// Get the home URL
+	$home_url = $GLOBALS['breeze_config']['homepage'];
+	$home_url = ltrim( $home_url, 'https:' );
+
+	// Set the rel attribute values
+	$replacement_rel_arr = array( 'noopener', 'noreferrer' );
+
+	// Extract the href and target attributes
+	$href_attr   = '';
+	$target_attr = '';
+	preg_match( '/href=(\'|")(.*?)\\1/si', $match[1], $href_match );
+	preg_match( '/target=(\'|")(.*?)\\1/si', $match[1], $target_match );
+	if ( $href_match ) {
+		$href_attr = $href_match[2];
+	}
+	if ( $target_match ) {
+		$target_attr = $target_match[2];
+	}
+
+	// Check if this is an external link
+	if ( ! empty( $href_attr ) &&
+		filter_var( $href_attr, FILTER_VALIDATE_URL ) &&
+		strpos( $href_attr, $home_url ) === false &&
+		strpos( $target_attr, '_blank' ) !== false ) {
+
+		// Extract the rel attribute, if present
+		$rel_attr = '';
+		preg_match( '/rel=(\'|")(.*?)\\1/si', $match[1], $rel_match );
+		if ( $rel_match ) {
+			$rel_attr = $rel_match[2];
+		}
+
+		// Set or modify the rel attribute as necessary
+		if ( empty( $rel_attr ) ) {
+			return '<a ' . $match[1] . ' rel="noopener noreferrer">';
+		} else {
+			$existing_rels = explode( ' ', $rel_attr );
+			$existing_rels = array_unique( array_merge( $replacement_rel_arr, $existing_rels ) );
+
+			return '<a ' . str_replace( $rel_attr, implode( ' ', $existing_rels ), $match[1] ) . '>';
+		}
+	} else {
+		// If this is not an external link, just return the matched string
+		return '<a ' . $match[1] . '>';
+	}
+}

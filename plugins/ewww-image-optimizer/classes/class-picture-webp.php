@@ -90,6 +90,10 @@ class Picture_Webp extends Page_Parser {
 		} else {
 			\add_filter( 'ewww_image_optimizer_filter_page_output', array( $this, 'filter_page_output' ), 10 );
 		}
+
+		// Generic filter for use by other plugins/themes.
+		\add_filter( 'eio_parse_page_html', array( $this, 'filter_page_output' ), 10, 2 );
+
 		// Filter for FacetWP JSON responses.
 		\add_filter( 'facetwp_render_output', array( $this, 'filter_facetwp_json_output' ) );
 
@@ -189,7 +193,7 @@ class Picture_Webp extends Page_Parser {
 		if ( '/print/' === \substr( $uri, -7 ) ) {
 			return false;
 		}
-		if ( \defined( 'REST_REQUEST' ) && REST_REQUEST ) {
+		if ( \defined( 'REST_REQUEST' ) && REST_REQUEST && ! \apply_filters( 'eio_allow_restapi_parsing', false, 'picture_webp' ) ) {
 			return false;
 		}
 		if ( false !== \strpos( $uri, 'tatsu=' ) ) {
@@ -257,14 +261,18 @@ class Picture_Webp extends Page_Parser {
 					$srcurl   = \rtrim( $srcurl, ',' );
 				}
 				$this->debug_message( "looking for $srcurl from srcset" );
-				if ( $this->validate_image_url( $srcurl ) ) {
-					$srcset = \str_replace( $srcurl . $trailing, $this->generate_url( $srcurl ) . $trailing, $srcset );
+				$validated_path = $this->validate_image_url( $srcurl );
+				if ( $validated_path ) {
+					$srcset = \str_replace( $srcurl . $trailing, $this->generate_url( $srcurl, $validated_path ) . $trailing, $srcset );
 					$this->debug_message( "replaced $srcurl in srcset" );
 					$found_webp = true;
 				}
 			}
-		} elseif ( $this->validate_image_url( $srcset ) ) {
-			return $this->generate_url( $srcset );
+		} else {
+			$validated_path = $this->validate_image_url( $srcset );
+			if ( $validated_path ) {
+				return $this->generate_url( $srcset, $validated_path );
+			}
 		}
 		if ( $found_webp ) {
 			return $srcset;
@@ -282,10 +290,15 @@ class Picture_Webp extends Page_Parser {
 	 * values for those attributes.
 	 *
 	 * @param string $buffer The full HTML page generated since the output buffer was started.
+	 * @param string $context Indicate which parsers are allowed. Defaults to empty, but may be lazyload, js_webp, or picture_webp.
 	 * @return string The altered buffer containing the full page with WebP images inserted.
 	 */
-	public function filter_page_output( $buffer ) {
+	public function filter_page_output( $buffer, $context = '' ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
+		if ( ! empty( $context ) && 'picture_webp' !== $context ) {
+			$this->debug_message( "3rd party context does not match: $context" );
+			return $buffer;
+		}
 		if (
 			empty( $buffer ) ||
 			\preg_match( '/^<\?xml/', $buffer ) ||
@@ -313,7 +326,8 @@ class Picture_Webp extends Page_Parser {
 				}
 				$file = $images['img_url'][ $index ];
 				$this->debug_message( "parsing an image: $file" );
-				if ( $this->validate_image_url( $file ) ) {
+				$validated_path = $this->validate_image_url( $file );
+				if ( $validated_path ) {
 					// If a CDN path match was found, or .webp image existence is confirmed.
 					$this->debug_message( 'found a webp image or forced path' );
 					$srcset      = $this->get_attribute( $image, 'srcset' );
@@ -323,7 +337,7 @@ class Picture_Webp extends Page_Parser {
 					}
 					$sizes_attr = '';
 					if ( empty( $srcset_webp ) ) {
-						$srcset_webp = $this->generate_url( $file );
+						$srcset_webp = $this->generate_url( $file, $validated_path );
 					} else {
 						$sizes = $this->get_attribute( $image, 'sizes' );
 						if ( $sizes ) {
@@ -507,7 +521,6 @@ class Picture_Webp extends Page_Parser {
 					'jetpack-lazy-image',
 					'lazy-slider-img=',
 					'mgl-lazy',
-					'skip-lazy',
 					'timthumb.php?',
 					'wpcf7_captcha/',
 				),
@@ -532,6 +545,9 @@ class Picture_Webp extends Page_Parser {
 	 */
 	public function validate_image_url( $image ) {
 		$this->debug_message( __METHOD__ . "() webp validation for $image" );
+		if ( empty( $image ) ) {
+			return false;
+		}
 		if ( $this->is_lazy_placeholder( $image ) ) {
 			return false;
 		}
@@ -557,6 +573,9 @@ class Picture_Webp extends Page_Parser {
 			return false;
 		}
 		if ( $this->get_option( 'ewww_image_optimizer_webp_force' ) && $this->is_iterable( $this->allowed_urls ) ) {
+			if ( $extension && 'png' === $extension && $this->get_option( 'ewww_image_optimizer_jpg_only_mode' ) ) {
+				return false;
+			}
 			// Check the image for configured CDN paths.
 			foreach ( $this->allowed_urls as $allowed_url ) {
 				if ( \strpos( $image, $allowed_url ) !== false ) {
@@ -565,22 +584,33 @@ class Picture_Webp extends Page_Parser {
 				}
 			}
 		} elseif ( $this->allowed_urls && $this->allowed_domains ) {
-			if ( $this->cdn_to_local( $image ) ) {
-				return true;
+			$maybe_path = $this->cdn_to_local( $image );
+			if ( $maybe_path ) {
+				return $maybe_path;
 			}
 		}
 		return $this->url_to_path_exists( $image );
 	}
 
 	/**
-	 * Generate a WebP URL by appending .webp to the filename.
+	 * Generate a WebP URL per the correct WebP naming pattern.
 	 *
 	 * @param string $url The image url.
+	 * @param string $path The image path.
 	 * @return string The WebP version of the image url.
 	 */
-	public function generate_url( $url ) {
-		$path_parts = \explode( '?', $url );
-		return \apply_filters( 'ewwwio_generated_webp_image_url', $path_parts[0] . '.webp' . ( ! empty( $path_parts[1] ) && 'is-pending-load=1' !== $path_parts[1] ? '?' . $path_parts[1] : '' ) );
+	public function generate_url( $url, $path ) {
+		$url_parts     = \explode( '?', $url );
+		$queryless_url = $url_parts[0];
+		if ( true === $path ) {
+			$webp_url = ewww_image_optimizer_get_webp_path( $queryless_url );
+		} else {
+			$webp_url = ewww_image_optimizer_get_webp_url( $path, $queryless_url );
+		}
+		if ( ! empty( $url_parts[1] ) && ! str_contains( $url_parts[1], 'is-pending-load' ) ) {
+			$webp_url .= '?' . $url_parts[1];
+		}
+		return apply_filters( 'ewwwio_generated_webp_image_url', $webp_url, $url );
 	}
 
 	/**

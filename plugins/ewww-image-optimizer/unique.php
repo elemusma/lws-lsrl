@@ -50,7 +50,7 @@ function ewww_image_optimizer_gifsicle_resize( $file, $dst_x, $dst_y, $src_x, $s
 	ewwwio_debug_message( "width: $dst_w" );
 	ewwwio_debug_message( "height: $dst_h" );
 
-	list( $orig_w, $orig_h ) = wp_getimagesize( $file );
+	list( $orig_w, $orig_h ) = ewwwio()->getimagesize( $file );
 
 	$outfile = "$file.tmp";
 	// Run gifsicle.
@@ -308,6 +308,10 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 		// Tell the user optimization was skipped.
 		return array( false, __( 'Optimization skipped', 'ewww-image-optimizer' ), $converted, $file );
 	}
+	if ( 'image/bmp' === $type && ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_bmp_convert' ) && empty( $ewww_convert ) ) {
+		ewwwio_debug_message( "BMP skipped, no conversion enabled: $file" );
+		return array( false, __( 'Optimization skipped', 'ewww-image-optimizer' ), $converted, $file );
+	}
 	$backup_hash = '';
 	$new_size    = 0;
 	// Set the optimization process to OFF.
@@ -318,12 +322,45 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 	do_action( 'ewww_image_optimizer_pre_optimization', $file, $type, $fullsize );
 	// Run the appropriate optimization/conversion for the mime-type.
 	switch ( $type ) {
+		case 'image/bmp':
+			if (
+				1 === (int) $gallery_type &&
+				$fullsize &&
+				( ewww_image_optimizer_get_option( 'ewww_image_optimizer_bmp_convert' ) || ! empty( $ewww_convert ) ) &&
+				empty( ewwwio()->webp_only )
+			) {
+				$jpgfile = ewww_image_optimizer_unique_filename( $file, '.jpg' );
+			} else {
+				$convert = false;
+			}
+			if ( $convert ) {
+				// We leave newfile (param #4) empty, to let the convert() method find the best filetype & corresponding extension.
+				// NOTE: at this point, conversion to PNG is disabled, but we'll keep it as is, just in case.
+				$new_file = $ewww_image->convert( $file, true, true );
+				$new_size = ewww_image_optimizer_filesize( $new_file );
+				if ( $new_file && $new_size && $new_size < $orig_size ) {
+					$file        = $new_file;
+					$converted   = true;
+					$results_msg = ewww_image_optimizer_update_table( $file, $new_size, $orig_size, $original );
+					// Update some of the EWWW_Image properties to prevent re-conversion.
+					$ewww_image->converted = $original;
+					$ewww_image->opt_size  = $new_size;
+					// Then, make sure the optimization will not abort due to the record we just inserted.
+					$original_force = ewwwio()->force;
+					ewwwio()->force = true;
+					ewww_image_optimizer( $file, $gallery_type, false, $new_image, true );
+					ewwwio()->force = $original_force;
+					$new_size       = ewww_image_optimizer_filesize( $file );
+				}
+			}
+			break;
 		case 'image/jpeg':
 			$png_size = 0;
 			// If jpg2png conversion is enabled, and this image is in the WordPress media library.
 			if (
 				1 === (int) $gallery_type &&
 				$fullsize &&
+				empty( $ewww_image->converted ) &&
 				( ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_to_png' ) || ! empty( $ewww_convert ) ) &&
 				empty( ewwwio()->webp_only )
 			) {
@@ -344,7 +381,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			}
 			$compression_level = (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' );
 			// Check for previous optimization, so long as the force flag is not on and this isn't a new image that needs converting.
-			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) ) {
+			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) && empty( ewwwio()->webp_only ) ) {
 				$results_msg = ewww_image_optimizer_check_table( $file, $orig_size );
 				$smart_reopt = ! empty( ewwwio()->force_smart ) && ewww_image_optimizer_level_mismatch( $ewww_image->level, $compression_level ) ? true : false;
 				if ( $smart_reopt ) {
@@ -372,8 +409,6 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				} else {
 					$webp_result = ewww_image_optimizer_webp_create( $file, $new_size, $type, null, $orig_size !== $new_size );
 				}
-				if ( 'pending' === $result ) {
-				}
 				break;
 			}
 			$tools['jpegtran'] = ewwwio()->local->get_path( 'jpegtran' );
@@ -388,15 +423,15 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				if ( empty( ewwwio()->webp_only ) ) {
 					list( $file, $converted, $result, $new_size, $backup_hash ) = ewww_image_optimizer_cloud_optimizer( $file, $type );
 				}
-				$webp_result = ewww_image_optimizer_webp_create( $file, $new_size, $type, null, $orig_size !== $new_size );
+				$webp_result = ewww_image_optimizer_webp_create( $file, $new_size, $type, $tools['cwebp'], $orig_size !== $new_size );
 				break;
 			}
-			// If we get this far, we are using local (jpegtran) optimization, so do an autorotate on the image.
-			ewww_image_optimizer_autorotate( $file );
 			// Get the (possibly new) original image size.
 			$orig_size = ewww_image_optimizer_filesize( $file );
 			if ( ! empty( ewwwio()->webp_only ) ) {
-				$optimize = false;
+				ewwwio_debug_message( 'creating webp only, skipping convert and optimize' );
+				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tools['cwebp'] );
+				break;
 			} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_jpg_level' ) ) {
 				// Store an appropriate message in $result.
 				$result = __( 'JPG optimization is disabled', 'ewww-image-optimizer' );
@@ -409,6 +444,8 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				// Set the optimization process to ON.
 				$optimize = true;
 			}
+			// If we get this far, we are using local (jpegtran) optimization, so do an autorotate on the image.
+			ewww_image_optimizer_autorotate( $file );
 			// If local optimization is turned ON.
 			if ( $optimize ) {
 				ewwwio_debug_message( 'attempting to optimize JPG...' );
@@ -450,11 +487,6 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 					$result   = 'unchanged';
 					$new_size = $orig_size;
 				}
-			} elseif ( ! $convert ) {
-				ewwwio_debug_message( 'calling webp, but neither convert or optimize' );
-				// If conversion and optimization are both turned OFF, finish the JPG processing.
-				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tools['cwebp'] );
-				break;
 			} // End if().
 			// If the conversion process is turned ON, or if this is a resize and the full-size was converted.
 			if ( $convert ) {
@@ -583,6 +615,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			if (
 				1 === (int) $gallery_type &&
 				$fullsize &&
+				empty( $ewww_image->converted ) &&
 				( ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_to_jpg' ) || ! empty( $ewww_convert ) ) &&
 				! $skip_lossy &&
 				empty( ewwwio()->webp_only )
@@ -627,7 +660,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			} // End if().
 			$compression_level = (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' );
 			// Check for previous optimization, so long as the force flag is not on and this isn't a new image that needs converting.
-			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) ) {
+			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) && empty( ewwwio()->webp_only ) ) {
 				$results_msg = ewww_image_optimizer_check_table( $file, $orig_size );
 				$smart_reopt = ! empty( ewwwio()->force_smart ) && ewww_image_optimizer_level_mismatch( $ewww_image->level, $compression_level ) ? true : false;
 				if ( $smart_reopt ) {
@@ -670,11 +703,6 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				}
 				break;
 			}
-			// For exec-deprived servers, allow free WebP conversion.
-			if ( 10 >= (int) $compression_level && ! ewwwio()->local->exec_check() ) {
-				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, null, $orig_size !== $new_size );
-				break;
-			}
 			$tools['optipng']  = ewwwio()->local->get_path( 'optipng' );
 			$tools['pngout']   = ewwwio()->local->get_path( 'pngout' );
 			$tools['pngquant'] = ewwwio()->local->get_path( 'pngquant' );
@@ -684,7 +712,9 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			}
 			// Check if we can (and should) do local PNG optimization.
 			if ( ! empty( ewwwio()->webp_only ) ) {
-				$optimize = false;
+				ewwwio_debug_message( 'creating webp only, skipping convert and optimize' );
+				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tools['cwebp'] );
+				break;
 			} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_png_level' ) ) {
 				// Tell the user all PNG tools are disabled.
 				$result = __( 'PNG optimization is disabled', 'ewww-image-optimizer' );
@@ -766,11 +796,6 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 					$result   = 'unchanged';
 					$new_size = $orig_size;
 				}
-			} elseif ( ! $convert ) {
-				// If conversion and optimization are both disabled we are done here.
-				ewwwio_debug_message( 'calling webp, but neither convert or optimize' );
-				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tools['cwebp'] );
-				break;
 			} // End if().
 			// Retrieve the new filesize of the PNG.
 			$new_size = ewww_image_optimizer_filesize( $file );
@@ -828,7 +853,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 					// Retrieve the data from the PNG.
 					$input = imagecreatefrompng( $file );
 					// Retrieve the dimensions of the PNG.
-					list($width, $height) = wp_getimagesize( $file );
+					list($width, $height) = ewwwio()->getimagesize( $file );
 					// Create a new image with those dimensions.
 					$output = imagecreatetruecolor( $width, $height );
 					if ( '' === $r ) {
@@ -918,6 +943,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				empty( ewwwio()->webp_only ) &&
 				1 === (int) $gallery_type &&
 				$fullsize &&
+				empty( $ewww_image->converted ) &&
 				( ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_to_png' ) || ! empty( $ewww_convert ) ) &&
 				! ewww_image_optimizer_is_animated( $file )
 			) {
@@ -938,7 +964,7 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			}
 			$compression_level = (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' );
 			// Check for previous optimization, so long as the force flag is on and this isn't a new image that needs converting.
-			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) ) {
+			if ( empty( ewwwio()->force ) && ! ( $new_image && $convert ) && empty( ewwwio()->webp_only ) ) {
 				$results_msg = ewww_image_optimizer_check_table( $file, $orig_size );
 				$smart_reopt = ! empty( ewwwio()->force_smart ) && ewww_image_optimizer_level_mismatch( $ewww_image->level, $compression_level ) ? true : false;
 				if ( $smart_reopt ) {
@@ -978,7 +1004,9 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 			}
 			// Check if we can (and should) do local GIF optimization.
 			if ( ! empty( ewwwio()->webp_only ) ) {
-				$optimize = false;
+				// This is for WebP-only mode, no conversion/optimization, and it'll be done via API.
+				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, null );
+				break;
 			} elseif ( ! ewww_image_optimizer_get_option( 'ewww_image_optimizer_gif_level' ) ) {
 				$result = __( 'GIF optimization is disabled', 'ewww-image-optimizer' );
 				// If utility checking is on, and gifsicle is not installed.
@@ -1014,10 +1042,6 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 					$result   = 'unchanged';
 					$new_size = $orig_size;
 				}
-			} elseif ( ! $convert ) {
-				// This is for WebP-only mode, no conversion/optimization, and it'll be done via API.
-				$webp_result = ewww_image_optimizer_webp_create( $file, $orig_size, $type, null, $orig_size !== $new_size );
-				break;
 			}
 			// Get the new filesize for the GIF.
 			$new_size = ewww_image_optimizer_filesize( $file );
@@ -1189,6 +1213,22 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 				}
 			}
 			break;
+		case 'image/webp':
+			if ( ! empty( ewwwio()->webp_only ) ) {
+				break;
+			}
+			$compression_level = (int) ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_level' );
+			if ( empty( ewwwio()->force ) ) {
+				$results_msg = ewww_image_optimizer_check_table( $file, $orig_size );
+				if ( $results_msg ) {
+					return array( $file, $results_msg, $converted, $original );
+				}
+			}
+			$ewww_image->level = $compression_level;
+			if ( $compression_level > 0 ) {
+				list( $file, $converted, $result, $new_size, $backup_hash ) = ewww_image_optimizer_cloud_optimizer( $file, $type );
+			}
+			break;
 		default:
 			// If not a JPG, PNG, GIF, PDF or SVG tell the user we don't work with strangers.
 			return array( false, __( 'Unsupported file type', 'ewww-image-optimizer' ) . ": $type", $converted, $original );
@@ -1199,6 +1239,8 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 	// If their cloud api license limit has been exceeded.
 	if ( 'exceeded' === $result ) {
 		return array( false, __( 'License exceeded', 'ewww-image-optimizer' ), $converted, $original );
+	} elseif ( 'exceeded subkey' === $result ) {
+		return array( false, __( 'Out of credits', 'ewww-image-optimizer' ), $converted, $original );
 	} elseif ( 'exceeded quota' === $result ) {
 		return array( false, __( 'Soft Quota Reached', 'ewww-image-optimizer' ), $converted, $original );
 	}
@@ -1228,19 +1270,113 @@ function ewww_image_optimizer( $file, $gallery_type = 4, $converted = false, $ne
 }
 
 /**
+ * Returns the WebP file path of the given image based on naming mode.
+ *
+ * @param string $file The full filesystem path to the source image.
+ * @return string The full filesystem path to the WebP image.
+ */
+function ewww_image_optimizer_get_webp_path( $file ) {
+	$naming_mode = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_naming_mode', 'append' );
+	$info        = pathinfo( $file );
+
+	if ( 'replace' === $naming_mode ) {
+		if ( empty( $info['dirname'] ) || '.' === $info['dirname'] ) {
+			$info['dirname'] = '';
+		} else {
+			$info['dirname'] = trailingslashit( $info['dirname'] );
+		}
+		$webp_path = $info['dirname'] . $info['filename'] . '.webp';
+	} else {
+		$webp_path = $file . '.webp';
+	}
+
+	return apply_filters( 'ewww_image_optimizer_webp_path', $webp_path, $file, $naming_mode );
+}
+
+/**
+ * Returns all possible WebP file paths of the given image.
+ *
+ * @param string $path The full filesystem path to the source image.
+ * @return array Returns array of both append and replace WebP naming paths.
+ */
+function ewww_image_optimizer_get_all_webp_paths( $path ) {
+	if ( empty( $path ) ) {
+		return array( '', '' );
+	}
+	$naming_mode = ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_naming_mode', 'append' );
+	$append      = $path . '.webp';
+	$info        = pathinfo( $path );
+	if ( empty( $info['dirname'] ) || '.' === $info['dirname'] ) {
+		$info['dirname'] = '';
+	} else {
+		$info['dirname'] = trailingslashit( $info['dirname'] );
+	}
+	$replace = $info['dirname'] . $info['filename'] . '.webp';
+
+	if ( 'append' === $naming_mode ) {
+		return array( $append, $replace );
+	}
+	return array( $replace, $append );
+}
+
+/**
+ * Removes obsolete WebP files created with previous naming conventions.
+ *
+ * @param string $path The full filesystem path to the source image.
+ */
+function ewww_image_optimizer_cleanup_legacy_webp( $path ) {
+	$current  = ewww_image_optimizer_get_webp_path( $path );
+	$variants = ewww_image_optimizer_get_all_webp_paths( $path );
+
+	foreach ( $variants as $legacy ) {
+		if ( $legacy !== $current && ewwwio_is_file( $legacy ) ) {
+			ewwwio_debug_message( "removing legacy webp file: $legacy" );
+			ewwwio_delete_file( $legacy );
+		}
+	}
+}
+
+/**
+ * Returns the WebP URL of the given image.
+ *
+ * @param string $path The full filesystem path to the source image.
+ * @param string $url The full URL to the source image.
+ * @return string URL to the existing WebP image.
+ */
+function ewww_image_optimizer_get_webp_url( $path, $url ) {
+	ewwwio_debug_message( "finding .webp path for source path $path and url $url" );
+	$webp_urls = ewww_image_optimizer_get_all_webp_paths( $url );
+	if ( empty( $path ) ) {
+		ewwwio_debug_message( "no path, returning {$webp_urls[0]}" );
+		return $webp_urls[0];
+	}
+	$webp_paths = ewww_image_optimizer_get_all_webp_paths( $path );
+
+	if ( ewwwio_is_file( $webp_paths[0] ) ) {
+		ewwwio_debug_message( "{$webp_paths[0]} found, returning {$webp_urls[0]}" );
+		return $webp_urls[0];
+	} elseif ( ewwwio_is_file( $webp_paths[1] ) ) {
+		ewwwio_debug_message( "{$webp_paths[1]} found, returning {$webp_urls[1]}" );
+		return $webp_urls[1];
+	}
+	ewwwio_debug_message( "no local file found, returning {$webp_urls[0]}" );
+	return $webp_urls[0];
+}
+
+/**
  * Creates WebP images alongside JPG and PNG files.
  *
  * @param string $file The name of the JPG/PNG file.
  * @param int    $orig_size The filesize of the JPG/PNG file.
  * @param string $type The mime-type of the incoming file.
  * @param string $tool The path to the cwebp binary, if installed.
- * @param bool   $recreate True to keep the .webp image even if it is larger than the JPG/PNG.
+ * @param bool   $recreate True to re-generate the .webp image even if one exists, usually because the source image has been modified.
  * @return string Results of the WebP operation for display.
  */
 function ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tool, $recreate = false ) {
 	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
 	$orig_size = ewww_image_optimizer_filesize( $file );
-	$webpfile  = $file . '.webp';
+	$webpfile  = ewww_image_optimizer_get_webp_path( $file );
 	if ( apply_filters( 'ewww_image_optimizer_bypass_webp', false, $file ) ) {
 		ewwwio_debug_message( "webp generation bypassed: $file" );
 		return '';
@@ -1261,13 +1397,24 @@ function ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tool, $rec
 		ewww_image_optimizer_update_webp_results( $file, 0, 3 );
 		return ewww_image_optimizer_webp_error_message( 3 );
 	}
-	list( $width, $height ) = wp_getimagesize( $file );
+	list( $width, $height ) = ewwwio()->getimagesize( $file );
 	if ( $width > 16383 || $height > 16383 ) {
 		ewww_image_optimizer_update_webp_results( $file, 0, 4 );
 		return ewww_image_optimizer_webp_error_message( 4 );
 	}
 	if ( empty( $tool ) || 'image/gif' === $type ) {
+		$use_cloud_webp = false;
 		if ( ewww_image_optimizer_get_option( 'ewww_image_optimizer_cloud_key' ) ) {
+			$use_cloud_webp = true;
+			if (
+				'local' === ewww_image_optimizer_get_option( 'ewww_image_optimizer_webp_conversion_method' ) &&
+				'image/gif' !== $type &&
+				ewwwio()->imagick_supports_webp()
+			) {
+				$use_cloud_webp = false;
+			}
+		}
+		if ( $use_cloud_webp ) {
 			ewww_image_optimizer_cloud_optimizer( $file, $type, false, $webpfile, 'image/webp' );
 		} elseif ( ewwwio()->imagick_supports_webp() ) {
 			ewww_image_optimizer_imagick_create_webp( $file, $type, $webpfile );
@@ -1276,6 +1423,9 @@ function ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tool, $rec
 		} else {
 			ewww_image_optimizer_cloud_optimizer( $file, $type, false, $webpfile, 'image/webp' );
 		}
+	} elseif ( ewwwio()->imagick_supports_webp() ) {
+		// Because we prefer Imagick for sharpening/quality over cwebp.
+		ewww_image_optimizer_imagick_create_webp( $file, $type, $webpfile );
 	} else {
 		$nice = '';
 		if ( PHP_OS !== 'WINNT' && ! ewwwio()->cloud_mode && ewwwio()->local->exec_check() ) {
@@ -1298,9 +1448,21 @@ function ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tool, $rec
 		}
 		switch ( $type ) {
 			case 'image/jpeg':
-				ewwwio_debug_message( "$nice " . $tool . " -q $quality $sharp_yuv -metadata $copy_opt -quiet " . ewww_image_optimizer_escapeshellarg( $file ) . ' -o ' . ewww_image_optimizer_escapeshellarg( $webpfile ) . ' 2>&1' );
-				exec( "$nice " . $tool . " -q $quality $sharp_yuv -metadata $copy_opt -quiet " . ewww_image_optimizer_escapeshellarg( $file ) . ' -o ' . ewww_image_optimizer_escapeshellarg( $webpfile ) . ' 2>&1', $cli_output );
-				if ( ! ewwwio_is_file( $webpfile ) && ewwwio()->imagick_supports_webp() && ewww_image_optimizer_is_cmyk( $file ) ) {
+				$resize_string = '';
+				$source_image  = $file;
+				global $ewww_image;
+				if ( ! empty( $ewww_image->attachment_id ) ) {
+					$original_image = ewwwio_get_original_image_path_from_thumb( $file, $ewww_image->attachment_id );
+					if ( $original_image ) {
+						$resize_string = ewww_image_optimizer_get_cwebp_resize_params( $file );
+						if ( $resize_string && ewwwio_is_file( $original_image ) ) {
+							$source_image = $original_image;
+						}
+					}
+				}
+				ewwwio_debug_message( "$nice " . $tool . " -q $quality $sharp_yuv $resize_string -metadata $copy_opt -quiet " . ewww_image_optimizer_escapeshellarg( $source_image ) . ' -o ' . ewww_image_optimizer_escapeshellarg( $webpfile ) . ' 2>&1' );
+				exec( "$nice " . $tool . " -q $quality $sharp_yuv $resize_string -metadata $copy_opt -quiet " . ewww_image_optimizer_escapeshellarg( $source_image ) . ' -o ' . ewww_image_optimizer_escapeshellarg( $webpfile ) . ' 2>&1', $cli_output );
+				if ( ! ewwwio_is_file( $webpfile ) && ewwwio()->imagick_supports_webp() && ewww_image_optimizer_is_cmyk( $source_image ) ) {
 					ewwwio_debug_message( 'cmyk image skipped, trying imagick' );
 					ewww_image_optimizer_imagick_create_webp( $file, $type, $webpfile );
 				} elseif ( ewwwio_is_file( $webpfile ) && 'image/webp' !== ewww_image_optimizer_mimetype( $webpfile, 'i' ) ) {
@@ -1338,6 +1500,40 @@ function ewww_image_optimizer_webp_create( $file, $orig_size, $type, $tool, $rec
 	}
 	ewww_image_optimizer_update_webp_results( $file, 0, 1 );
 	return ewww_image_optimizer_webp_error_message( 1 );
+}
+
+/**
+ * Get resize/crop parameters for cwebp when converting a thumbnail image.
+ *
+ * @param string $file The path of the thumb to be converted.
+ * @return string CLI args to use for resizing a thumb from the original, or an empty string.
+ */
+function ewww_image_optimizer_get_cwebp_resize_params( $file ) {
+	ewwwio_debug_message( '<b>' . __FUNCTION__ . '()</b>' );
+	$resize_params = '';
+	list( $webp_width, $webp_height, $webp_crop, $fullsize_image ) = ewww_image_optimizer_get_webp_resize_params( $file );
+	if ( $webp_width && $webp_height && $fullsize_image ) {
+		ewwwio_debug_message( 'building resize params' );
+		if ( $webp_crop ) {
+			ewwwio_debug_message( 'cropping' );
+			list( $full_width, $full_height ) = ewwwio()->getimagesize( $fullsize_image );
+			if ( ! empty( $full_width ) && ! empty( $full_height ) ) {
+				ewwwio_debug_message( 'found full-size dims' );
+				$dims = image_resize_dimensions( $full_width, $full_height, $webp_width, $webp_height, $webp_crop );
+				if ( $dims && is_array( $dims ) ) {
+					ewwwio_debug_message( 'image_resize_dimensions() returned: ' . implode( ', ', $dims ) );
+					list( $dst_x, $dst_y, $src_x, $src_y, $dst_w, $dst_h, $src_w, $src_h ) = $dims;
+					// Build it with both crop and resize args, the crop will chop off the edges for the needed aspect ratio, then resize scales it (if needed).
+					$resize_params = "-resize $webp_width $webp_height -crop $src_x $src_y $src_w $src_h";
+				}
+			}
+		} else {
+			ewwwio_debug_message( 'scaling' );
+			$resize_params = "-resize $webp_width $webp_height";
+		}
+		ewwwio_debug_message( "final CLI resize args: $resize_params" );
+	}
+	return $resize_params;
 }
 
 /**
@@ -1692,6 +1888,9 @@ function ewww_image_optimizer_remove_binaries() {
 	foreach ( $iterator as $file ) {
 		if ( $file->isFile() ) {
 			$path = $file->getPathname();
+			if ( strpos( $path, 'image-backup' ) ) {
+				continue;
+			}
 			if ( is_writable( $path ) ) {
 				unlink( $path );
 			}

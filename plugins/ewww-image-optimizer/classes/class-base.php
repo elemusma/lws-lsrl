@@ -34,6 +34,22 @@ class Base {
 	public static $temp_debug = false;
 
 	/**
+	 * System info, gathered from the debugger and debug_info() functions.
+	 *
+	 * @access public
+	 * @var string $system_info
+	 */
+	public static $system_info = '';
+
+	/**
+	 * Whether the site is multisite, network activated, and not configured for per-site settings.
+	 *
+	 * @access public
+	 * @var bool $use_network_options
+	 */
+	public static $use_network_options = null;
+
+	/**
 	 * Content directory (URL) for the plugin to use.
 	 *
 	 * @access protected
@@ -310,7 +326,7 @@ class Base {
 			$potential_logs = \scandir( $this->content_dir );
 			if ( $this->is_iterable( $potential_logs ) ) {
 				foreach ( $potential_logs as $potential_log ) {
-					if ( $this->str_ends_with( $potential_log, '.log' ) && false !== strpos( $potential_log, strtolower( __NAMESPACE__ ) . '-debug-' ) && is_file( $this->content_dir . $potential_log ) ) {
+					if ( \str_ends_with( $potential_log, '.log' ) && false !== strpos( $potential_log, strtolower( __NAMESPACE__ ) . '-debug-' ) && is_file( $this->content_dir . $potential_log ) ) {
 						return $this->content_dir . $potential_log;
 					}
 				}
@@ -404,6 +420,24 @@ class Base {
 	}
 
 	/**
+	 * Checks to see if test mode is enabled, and whether the current user is a logged-in admin.
+	 *
+	 * @return bool True if test mode should be effective and prevent optimizations for guest users. False otherwise.
+	 */
+	public function test_mode_active() {
+		if (
+			$this->get_option( $this->prefix . 'test_mode' ) &&
+			( ! is_user_logged_in() || ! current_user_can( 'manage_options' ) )
+		) {
+			if ( ! empty( $_GET['ewwwio_test_mode'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+				return false;
+			}
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Escape any spaces in the filename.
 	 *
 	 * @param string $path The path to a binary file.
@@ -428,6 +462,25 @@ class Base {
 		}
 		$safe_arg = "'" . \str_replace( "'", "'\\''", $arg ) . "'";
 		return $safe_arg;
+	}
+
+	/**
+	 * Ensures a file path is UTF-8 encoded.
+	 *
+	 * @param string $path The file path to check.
+	 * @return string The UTF-8 encoded file path.
+	 */
+	public function ensure_utf8_path( $path ) {
+		if ( ! \function_exists( '\mb_convert_encoding' ) ) {
+			return $path;
+		}
+		if (
+			( \function_exists( '\wp_is_valid_utf8' ) && ! \wp_is_valid_utf8( $path ) ) ||
+			( ! \function_exists( '\wp_is_valid_utf8' ) && ! \seems_utf8( $path ) )
+		) {
+			$path = \mb_convert_encoding( $path, 'UTF-8' );
+		}
+		return $path;
 	}
 
 	/**
@@ -553,11 +606,11 @@ class Base {
 					$this->debug_message( 'imagewebp() missing' );
 				} elseif ( ! \function_exists( '\imagepalettetotruecolor' ) ) {
 					$this->debug_message( 'imagepalettetotruecolor() missing' );
-				} elseif ( \function_exists( '\imageistruecolor' ) ) {
+				} elseif ( ! \function_exists( '\imageistruecolor' ) ) {
 					$this->debug_message( 'imageistruecolor() missing' );
-				} elseif ( \function_exists( '\imagealphablending' ) ) {
+				} elseif ( ! \function_exists( '\imagealphablending' ) ) {
 					$this->debug_message( 'imagealphablending() missing' );
-				} elseif ( \function_exists( '\imagesavealpha' ) ) {
+				} elseif ( ! \function_exists( '\imagesavealpha' ) ) {
 					$this->debug_message( 'imagesavealpha() missing' );
 				} elseif ( $gd_version ) {
 					$this->debug_message( "version: $gd_version" );
@@ -586,7 +639,55 @@ class Base {
 				$this->debug_message( 'sorry nope' );
 			}
 		}
-		return $this->imagick_supports_webp;
+		return apply_filters( 'ewwwio_imagick_supports_webp', $this->imagick_supports_webp );
+	}
+
+	/**
+	 * Get a list of which image/file types are supported.
+	 *
+	 * @param string $select Defaults to 'enabled' to only list those types which have optimization enabled. Specify 'all' to return all possible types.
+	 * @return array A list of file/mime types.
+	 */
+	public function get_supported_types( $select = 'enabled' ) {
+		$supported_types = array();
+		if ( $this->get_option( 'ewww_image_optimizer_jpg_level' ) || $this->get_option( 'ewww_image_optimizer_webp' ) || 'all' === $select ) {
+			$supported_types[] = 'image/jpeg';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_png_level' ) || $this->get_option( 'ewww_image_optimizer_webp' ) || 'all' === $select ) {
+			$supported_types[] = 'image/png';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_gif_level' ) || 'all' === $select ) {
+			$supported_types[] = 'image/gif';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_webp_level' ) || 'all' === $select ) {
+			$supported_types[] = 'image/webp';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_pdf_level' ) || 'all' === $select ) {
+			$supported_types[] = 'application/pdf';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_svg_level' ) || 'all' === $select ) {
+			$supported_types[] = 'image/svg+xml';
+		}
+		if ( $this->get_option( 'ewww_image_optimizer_bmp_convert' ) || $this->get_option( 'ewww_image_optimizer_jpg_level' ) || 'all' === $select ) {
+			$supported_types[] = 'image/bmp';
+		}
+		return $supported_types;
+	}
+
+	/**
+	 * Get a list of which image types can be converted to WebP with the current configuration.
+	 *
+	 * @return A list of mime-types suitable for WebP conversion.
+	 */
+	public function get_webp_types() {
+		$webp_types = array( 'image/jpeg' );
+		if ( $this->get_option( 'ewww_image_optimizer_cloud_key' ) ) {
+			$webp_types[] = 'image/png';
+			$webp_types[] = 'image/gif';
+		} elseif ( ! $this->get_option( 'ewww_image_optimizer_jpg_only_mode' ) ) {
+			$webp_types[] = 'image/png';
+		}
+		return $webp_types;
 	}
 
 	/**
@@ -656,7 +757,7 @@ class Base {
 	 * Retrieve option: use 'site' setting if plugin is network activated, otherwise use 'blog' setting.
 	 *
 	 * Retrieves multi-site and single-site options as appropriate as well as allowing overrides with
-	 * same-named constant. Overrides are only available for integer and boolean options.
+	 * same-named constant. Overrides are only available for integers, booleans, and specifically supported options.
 	 *
 	 * @param string $option_name The name of the option to retrieve.
 	 * @param mixed  $default_value The default to use if not found/set, defaults to false, but not currently used.
@@ -713,18 +814,26 @@ class Base {
 		if ( 'EasyIO' === __NAMESPACE__ ) {
 			return \get_option( $option_name );
 		}
-		if ( ! \function_exists( 'is_plugin_active_for_network' ) && \is_multisite() ) {
-			// Need to include the plugin library for the is_plugin_active function.
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		if ( \is_null( self::$use_network_options ) ) {
+			self::$use_network_options = false;
+			if ( ! \function_exists( '\is_plugin_active_for_network' ) && \is_multisite() ) {
+				// Need to include the plugin library for the is_plugin_active function.
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+			if (
+				\is_multisite() &&
+				\defined( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) &&
+				\is_plugin_active_for_network( \constant( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) ) &&
+				! \get_site_option( $this->prefix . 'allow_multisite_override' )
+			) {
+				self::$use_network_options = true;
+			}
 		}
-		if (
-			! $single &&
-			\is_multisite() &&
-			\defined( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) &&
-			\is_plugin_active_for_network( \constant( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) ) &&
-			! \get_site_option( $this->prefix . 'allow_multisite_override' )
-		) {
+		if ( ! $single && self::$use_network_options ) {
 			$option_value = \get_site_option( $option_name );
+			if ( 'ewww_image_optimizer_exactdn' === $option_name && ! $option_value ) {
+				$option_value = \get_option( $option_name );
+			}
 		} else {
 			$option_value = \get_option( $option_name );
 		}
@@ -882,31 +991,13 @@ class Base {
 	 * @return bool True if the file exists and is local, false otherwise.
 	 */
 	public function is_file( $file ) {
+		if ( empty( $file ) ) {
+			return false;
+		}
 		if ( false !== \strpos( $file, '://' ) ) {
 			return false;
 		}
 		if ( false !== \strpos( $file, 'phar://' ) ) {
-			return false;
-		}
-		$file       = \realpath( $file );
-		$wp_dir     = \realpath( ABSPATH );
-		$upload_dir = \wp_get_upload_dir();
-		$upload_dir = \realpath( $upload_dir['basedir'] );
-
-		$content_dir = \realpath( WP_CONTENT_DIR );
-		if ( empty( $content_dir ) ) {
-			$content_dir = $wp_dir;
-		}
-		if ( empty( $upload_dir ) ) {
-			$upload_dir = $content_dir;
-		}
-		$plugin_dir = \realpath( \constant( \strtoupper( $this->prefix ) . 'PLUGIN_PATH' ) );
-		if (
-			false === \strpos( $file, $upload_dir ) &&
-			false === \strpos( $file, $content_dir ) &&
-			false === \strpos( $file, $wp_dir ) &&
-			false === \strpos( $file, $plugin_dir )
-		) {
 			return false;
 		}
 		return \is_file( $file );
@@ -990,14 +1081,34 @@ class Base {
 	}
 
 	/**
+	 * Get the dimensions of an image.
+	 *
+	 * Differs from the core wp_getimagesize() in that it always returns an array with two values.
+	 *
+	 * @param string $filename The filename of an image.
+	 * @return array Array of width and height, both set to false on failure.
+	 */
+	public function getimagesize( $filename ) {
+		$width  = false;
+		$height = false;
+
+		$image_data = \wp_getimagesize( $filename );
+		if ( \is_array( $image_data ) && ! empty( $image_data[0] ) && ! empty( $image_data[1] ) ) {
+			$width  = (int) $image_data[0];
+			$height = (int) $image_data[1];
+		}
+		return array( $width, $height );
+	}
+
+	/**
 	 * Check the mimetype of the given file with magic mime strings/patterns.
 	 *
 	 * @param string $path The absolute path to the file.
-	 * @param string $category The type of file we are checking. Accepts 'i' for
+	 * @param string $category The type of file we are checking. Default 'i' for
 	 *                     images/pdfs or 'b' for binary.
 	 * @return bool|string A valid mime-type or false.
 	 */
-	public function mimetype( $path, $category ) {
+	public function mimetype( $path, $category = 'i' ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
 		$this->debug_message( "testing mimetype: $path" );
 		$type = false;
@@ -1021,6 +1132,11 @@ class Base {
 				// Read first 12 bytes, which equates to 24 hex characters.
 				$magic = \bin2hex( \substr( $file_contents, 0, 12 ) );
 				$this->debug_message( $magic );
+				if ( '424d' === \substr( $magic, 0, 4 ) ) {
+					$type = 'image/bmp';
+					$this->debug_message( "ewwwio type: $type" );
+					return $type;
+				}
 				if ( 0 === \strpos( $magic, '52494646' ) && 16 === \strpos( $magic, '57454250' ) ) {
 					$type = 'image/webp';
 					$this->debug_message( "ewwwio type: $type" );
@@ -1098,6 +1214,8 @@ class Base {
 	public function quick_mimetype( $path ) {
 		$pathextension = \strtolower( \pathinfo( $path, PATHINFO_EXTENSION ) );
 		switch ( $pathextension ) {
+			case 'bmp':
+				return 'image/bmp';
 			case 'jpg':
 			case 'jpeg':
 			case 'jpe':
@@ -1234,7 +1352,7 @@ class Base {
 	public function memory_limit() {
 		if ( \defined( 'EIO_MEMORY_LIMIT' ) && EIO_MEMORY_LIMIT ) {
 			$memory_limit = EIO_MEMORY_LIMIT;
-		} elseif ( \function_exists( 'ini_get' ) ) {
+		} elseif ( \function_exists( '\ini_get' ) ) {
 			$memory_limit = \ini_get( 'memory_limit' );
 		} else {
 			if ( ! \defined( 'EIO_MEMORY_LIMIT' ) ) {
@@ -1269,21 +1387,17 @@ class Base {
 	}
 
 	/**
-	 * Performs a case-sensitive check indicating if
-	 * the haystack ends with needle.
+	 * Wrapper around size_format to remove the decimal from sizes in bytes.
 	 *
-	 * @param string $haystack The string to search in.
-	 * @param string $needle   The substring to search for in the `$haystack`.
-	 * @return bool True if `$haystack` ends with `$needle`, otherwise false.
+	 * @param int $size A filesize in bytes.
+	 * @param int $precision Number of places after the decimal separator.
+	 * @return string Human-readable filesize.
 	 */
-	public function str_ends_with( $haystack, $needle ) {
-		if ( '' === $haystack && '' !== $needle ) {
-			return false;
-		}
-
-		$len = \strlen( $needle );
-
-		return 0 === \substr_compare( $haystack, $needle, -$len, $len );
+	public function size_format( $size, $precision = 1 ) {
+			// Convert it to human readable format.
+			$size_str = \size_format( $size, $precision );
+			// Remove spaces and extra decimals when measurement is in bytes.
+			return \preg_replace( '/\.0+ B ?/', ' B', $size_str );
 	}
 
 	/**
@@ -1309,15 +1423,21 @@ class Base {
 	 * @return bool True if the operation was successful.
 	 */
 	public function set_option( $option_name, $option_value ) {
-		if ( ! \function_exists( '\is_plugin_active_for_network' ) && \is_multisite() ) {
-			// Need to include the plugin library for the is_plugin_active function.
-			require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		if ( \is_null( self::$use_network_options ) ) {
+			self::$use_network_options = false;
+			if ( ! \function_exists( '\is_plugin_active_for_network' ) && \is_multisite() ) {
+				// Need to include the plugin library for the is_plugin_active function.
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+			if (
+				\is_multisite() &&
+				\is_plugin_active_for_network( \constant( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) ) &&
+				! \get_site_option( $this->prefix . 'allow_multisite_override' )
+			) {
+				self::$use_network_options = true;
+			}
 		}
-		if (
-			\is_multisite() &&
-			\is_plugin_active_for_network( \constant( \strtoupper( $this->prefix ) . 'PLUGIN_FILE_REL' ) ) &&
-			! \get_site_option( $this->prefix . 'allow_multisite_override' )
-		) {
+		if ( self::$use_network_options ) {
 			$success = \update_site_option( $option_name, $option_value );
 		} else {
 			$success = \update_option( $option_name, $option_value );
@@ -1472,21 +1592,29 @@ class Base {
 		}
 		if ( 0 === \strpos( $url, WP_CONTENT_URL ) ) {
 			$path = \str_replace( WP_CONTENT_URL, WP_CONTENT_DIR, $url );
-			$this->debug_message( "trying $path based on " . WP_CONTENT_URL );
+			$this->debug_message( "trying $path based on WP_CONTENT_URL " . WP_CONTENT_URL );
 		} elseif ( 0 === \strpos( $url, $this->relative_home_url ) ) {
 			$path = \str_replace( $this->relative_home_url, ABSPATH, $url );
-			$this->debug_message( "trying $path based on " . $this->relative_home_url );
+			$this->debug_message( "trying $path based on relative home URL and ABSPATH" . $this->relative_home_url );
 		} elseif ( 0 === \strpos( $url, $this->home_url ) ) {
 			$path = \str_replace( $this->home_url, ABSPATH, $url );
-			$this->debug_message( "trying $path based on " . $this->home_url );
+			$this->debug_message( "trying $path based on home_url and ABSPATH" . $this->home_url );
 		} else {
 			$this->debug_message( 'not a valid local image' );
 			return false;
 		}
 		$path_parts = \explode( '?', $path );
 		if ( $this->is_file( $path_parts[0] . $extension ) ) {
-			$this->debug_message( 'local file found' );
+			$this->debug_message( 'local file found (appended)' );
 			return $path_parts[0];
+		}
+		if ( ! empty( $extension ) ) {
+			$path_info     = pathinfo( $path_parts[0] );
+			$replaced_path = $path_info['dirname'] . '/' . $path_info['filename'] . $extension;
+			if ( $this->is_file( $replaced_path ) ) {
+				$this->debug_message( 'local file found (replaced)' );
+				return $path_parts[0];
+			}
 		}
 		if ( \class_exists( '\HMWP_Classes_ObjController' ) ) {
 			$hmwp_file_handler = \HMWP_Classes_ObjController::getClass( 'HMWP_Models_Files' );
@@ -1497,8 +1625,16 @@ class Base {
 				$this->debug_message( "trying $path from HMWP" );
 				$path_parts = \explode( '?', $path );
 				if ( $this->is_file( $path_parts[0] . $extension ) ) {
-					$this->debug_message( 'local file found' );
+					$this->debug_message( 'local file found (appended)' );
 					return $path_parts[0];
+				}
+				if ( ! empty( $extension ) ) {
+					$path_info     = pathinfo( $path_parts[0] );
+					$replaced_path = $path_info['dirname'] . '/' . $path_info['filename'] . $extension;
+					if ( $this->is_file( $replaced_path ) ) {
+						$this->debug_message( 'local file found (replaced)' );
+						return $path_parts[0];
+					}
 				}
 			}
 		}
@@ -1544,14 +1680,17 @@ class Base {
 	 * @return mixed Result of parse_url.
 	 */
 	public function parse_url( $url, $component = -1 ) {
-		if ( 0 === \strpos( $url, '//' ) ) {
+		if ( empty( $url ) ) {
+			return false;
+		}
+		if ( \str_starts_with( $url, '//' ) ) {
 			$url = ( \is_ssl() ? 'https:' : 'http:' ) . $url;
 		}
-		if ( false === \strpos( $url, 'http' ) && '/' !== \substr( $url, 0, 1 ) ) {
+		if ( ! \str_starts_with( $url, 'http' ) && ! \str_starts_with( $url, '/' ) && ! \str_starts_with( $url, '.' ) ) {
 			$url = ( \is_ssl() ? 'https://' : 'http://' ) . $url;
 		}
 		// Because encoded ampersands in the filename break things.
-		$url = \str_replace( '&#038;', '&', $url );
+		$url = \html_entity_decode( $url );
 		return \parse_url( $url, $component );
 	}
 

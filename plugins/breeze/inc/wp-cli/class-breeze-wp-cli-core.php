@@ -1,4 +1,7 @@
 <?php
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 
 include BREEZE_PLUGIN_DIR . 'inc/wp-cli/class-breeze-cli-helpers.php';
 include BREEZE_PLUGIN_DIR . 'inc/wp-cli/class-breeze-settings-import-export.php';
@@ -72,7 +75,7 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 				// Clear all cache at network level.
 				if ( is_multisite() && empty( $level ) || 'network' === $level ) {
 
-					$sites = get_sites();
+					$sites = get_sites( array( 'number' => 0 ) );
 					foreach ( $sites as $site ) {
 						switch_to_blog( $site->blog_id );
 						do_action( 'breeze_clear_all_cache' );
@@ -96,13 +99,12 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 						__( 'Breeze all cache has been purged.', 'breeze' )
 					);
 				}
-
 			}
 
 			if ( 'varnish' === $assoc_args['cache'] ) {
 				// Clear varnish at network level.
 				if ( is_multisite() && empty( $level ) || 'network' === $level ) {
-					$sites = get_sites();
+					$sites = get_sites( array( 'number' => 0 ) );
 					foreach ( $sites as $site ) {
 						switch_to_blog( $site->blog_id );
 						do_action( 'breeze_clear_varnish' );
@@ -135,7 +137,7 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 
 				} else {
 					if ( is_multisite() && empty( $level ) || 'network' === $level ) {
-						$sites        = get_sites();
+						$sites        = get_sites( array( 'number' => 0 ) );
 						$list_of_urls = array();
 						foreach ( $sites as $blog_data ) {
 							$url            = get_home_url( $blog_data->blog_id );
@@ -160,13 +162,13 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 			if ( 'local' === $assoc_args['cache'] ) {
 				// Clear local cache at network level.
 				if ( is_multisite() && empty( $level ) || 'network' === $level ) {
-					$sites = get_sites();
+					$sites = get_sites( array( 'number' => 0 ) );
 					foreach ( $sites as $site ) {
 						switch_to_blog( $site->blog_id );
 						//delete minify
 						Breeze_MinificationCache::clear_minification();
 						//clear normal cache
-						Breeze_PurgeCache::breeze_cache_flush();
+						Breeze_PurgeCache::breeze_cache_flush( true, true, true );
 						restore_current_blog();
 					}
 
@@ -180,7 +182,7 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 					//delete minify
 					Breeze_MinificationCache::clear_minification();
 					//clear normal cache
-					Breeze_PurgeCache::breeze_cache_flush();
+					Breeze_PurgeCache::breeze_cache_flush( true, true, true );
 
 					if ( ! empty( $level ) ) {
 						restore_current_blog();
@@ -190,10 +192,7 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 						__( 'Breeze local cache has been purged.', 'breeze' )
 					);
 				}
-
 			}
-
-
 		} else {
 			Breeze_Cli_Helpers::cache_helper_display();
 			WP_CLI::error(
@@ -262,15 +261,17 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 
 		$full_file_path = $breeze_export . $breeze_file;
 		$create         = false;
+
+		$wp_filesystem = breeze_get_filesystem();
+
 		if ( wp_mkdir_p( $breeze_export ) ) {
 			$create = true;
 		}
+
 		if ( $create ) {
-			$file_handle = @fopen( $full_file_path, 'wb' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged, WordPress.WP.AlternativeFunctions.file_system_read_fopen
-			if ( $file_handle ) {
-				fwrite( $file_handle, $settings ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fwrite
-				fclose( $file_handle ); // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_read_fclose
-			} else {
+			// Write settings to the file.
+			$result = $wp_filesystem->put_contents( $full_file_path, $settings );
+			if ( ! $result ) {
 				WP_CLI::error(
 					__( 'Could not write to file', 'breeze' )
 				);
@@ -326,7 +327,6 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 					__( 'Error importing remote JSON file', 'breeze' ) . ' : ' . $contents->get_error_message()
 				);
 			}
-
 		} else {
 			if ( ! file_exists( $file_path ) || ! is_readable( $file_path ) ) {
 				WP_CLI::error(
@@ -340,7 +340,6 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 			$contents = fread( $handle, filesize( $file_path ) );
 			fclose( $handle );
 		}
-
 
 		$contents = trim( $contents );
 
@@ -397,7 +396,6 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 				$settings_action = Breeze_Settings_Import_Export::replace_options_cli( $json, $level );
 			}
 
-
 			if ( true === $settings_action ) {
 				WP_CLI::success(
 					__( 'Settings have been imported', 'breeze' )
@@ -414,7 +412,6 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 		}
 
 		WP_CLI::line( WP_CLI::colorize( '%YDone%n.' ) );
-
 	}
 
 	/**
@@ -462,7 +459,6 @@ class Breeze_WP_Cli_Core extends \WP_CLI_Command {
 			);
 		}
 	}
-
 }
 
 WP_CLI::add_command(
@@ -470,6 +466,3 @@ WP_CLI::add_command(
 	'Breeze_WP_Cli_Core',
 	array( 'file-path' => '' )
 );
-
-
-

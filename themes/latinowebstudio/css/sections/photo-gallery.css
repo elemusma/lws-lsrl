@@ -6,6 +6,28 @@
   color: #eaeaea !important;
 }
 
+button.owl-prev,
+button.owl-next {
+    position: absolute;
+    top: 50%;
+    transform: translate(0, -50%);
+    left: 0;
+}
+
+button.owl-next {
+    left: unset;
+    right:0;
+}
+
+button.owl-prev,
+button.owl-next {
+  color:white!important;
+}
+
+a.lb-prev {
+    padding-left: 30px;
+}
+
 button.owl-next,
 button.owl-prev {
   outline: none !important;

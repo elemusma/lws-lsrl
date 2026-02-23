@@ -1,8 +1,10 @@
 <?php
-
 /**
  * Compatibility with Avada theme cache reset.
  */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 class Breeze_Avada_Cache {
 	private $run_time = 0;
 
@@ -24,7 +26,7 @@ class Breeze_Avada_Cache {
 			//delete minify
 			Breeze_MinificationCache::clear_minification();
 			//clear normal cache
-			Breeze_PurgeCache::breeze_cache_flush( false );
+			Breeze_PurgeCache::breeze_cache_flush( false, true, true );
 
 			$admin = new Breeze_Admin();
 			$admin->breeze_clear_varnish();

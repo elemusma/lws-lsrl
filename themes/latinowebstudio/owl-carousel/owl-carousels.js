@@ -1,3 +1,5 @@
+jQuery(document).ready(function($) {
+
 $('.product-gallery-carousel').owlCarousel({
     // center: true,
     loop: false,
@@ -62,4 +64,40 @@ $('.background-carousel').owlCarousel({
     //         // slideBy: 4
     //     }
     // }
+});
+
+$('.listings-carousel').owlCarousel({
+    // center: true,
+    loop: false,
+    margin: 0,
+    nav: true,
+    dots: false,
+    // autoHeight: false,
+    // autoHeightClass: 'owl-height',
+    stagePadding:0,
+    autoplay: false,
+    autoplayTimeout: 3500,
+    autoplaySpeed: 7000, // this seems to make it autoscroll
+    autoplayHoverPause: false,
+    animateIn: 'fadeIn',
+    animateOut: 'fadeOut',
+    // navText : ["<img src='/wp-content/uploads/2021/07/Arrow-Left-Blair-ITC.png' />","<img src='/wp-content/uploads/2021/07/Arrow-Right-Blair-ITC.png' />"],
+    items:1,
+    // responsive: {
+    //     0: {
+    //         items: 2,
+    //         // slideBy: 2
+    //     },
+    //     600: {
+    //         items: 3,
+    //         // slideBy: 3
+    //     },
+    //     1000: {
+    //         items: 4,
+    //         // slideBy: 4
+    //     }
+    // }
+});
+
+
 });

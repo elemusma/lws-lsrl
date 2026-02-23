@@ -29,23 +29,6 @@ Version: 1.0
 }
 }
 
-/* @media only screen and (max-width:767px) {
-    .admin-bar header.position-fixed {
-        margin-top: 45px;
-    }
-} */
-
-/* :root {
-    --primary: #f26522;
-    --secondary: #0f2849;
-} */
-
-/* .logged-in header.position-fixed {
-    margin-top: 32px;
+@view-transition {
+  navigation: auto;
 }
-
-@media only screen and (max-width:767px) {
-    .logged-in header.position-fixed {
-        margin-top: 45px;
-    }
-} */

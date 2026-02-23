@@ -140,7 +140,7 @@ class WPSEO_Option_Titles extends WPSEO_Option {
 	/**
 	 * Used for "caching" during pageload.
 	 *
-	 * @var string[]
+	 * @var string[]|null
 	 */
 	protected $enriched_defaults = null;
 
@@ -836,7 +836,6 @@ class WPSEO_Option_Titles extends WPSEO_Option {
 				'metadesc-'        => 'metadesc-tax-',
 				'noindex-'         => 'noindex-tax-',
 				'tax-hideeditbox-' => 'hideeditbox-tax-',
-
 			];
 
 			$taxonomy_names  = get_taxonomies( [ 'public' => true ], 'names' );

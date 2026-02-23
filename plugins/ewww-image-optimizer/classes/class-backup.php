@@ -145,6 +145,7 @@ class Backup extends Base {
 	public function get_backup_location( $file ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
 		if ( \ewww_image_optimizer_stream_wrapped( $file ) || 'local' !== $this->backup_mode ) {
+			$this->debug_message( "$file is stream wrapped or {$this->backup_mode} backup_mode !== local" );
 			return '';
 		}
 		$upload_dir = \wp_get_upload_dir();
@@ -153,16 +154,19 @@ class Backup extends Base {
 			$this->debug_message( 'using ' . $this->backup_uploads_dir );
 			return \str_replace( $upload_dir, $this->backup_uploads_dir, $file );
 		}
+		$this->debug_message( "$file is not in upload dir ($upload_dir)" );
 		$content_dir = \trailingslashit( \realpath( WP_CONTENT_DIR ) );
 		if ( $content_dir && \strpos( $file, $content_dir ) === 0 ) {
 			$this->debug_message( 'using ' . $this->backup_dir );
 			return \str_replace( $content_dir, $this->backup_dir, $file );
 		}
+		$this->debug_message( "$file is not in content dir ($content_dir)" );
 		$wp_dir = \trailingslashit( \realpath( ABSPATH ) );
 		if ( $wp_dir && \strpos( $file, $wp_dir ) === 0 ) {
 			$this->debug_message( 'using ' . $this->backup_root_dir );
 			return \str_replace( $wp_dir, $this->backup_root_dir, $file );
 		}
+		$this->debug_message( "$file is not in root dir/ABSPATH ($wp_dir)" );
 		return '';
 	}
 
@@ -228,9 +232,11 @@ class Backup extends Base {
 	public function store_local_backup( $file ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
 		if ( 'local' !== $this->backup_mode ) {
+			$this->debug_message( 'not using local backups' );
 			return;
 		}
 		if ( ! $this->is_file( $file ) || ! $this->is_readable( $file ) ) {
+			$this->debug_message( "$file is not a file or not readable" );
 			return;
 		}
 		// Even though these are checked in Backup::backup_file(), this method can be run directly, which bypasses that check.
@@ -241,19 +247,23 @@ class Backup extends Base {
 			}
 		}
 		if ( apply_filters( 'ewww_image_optimizer_skip_local_backup', false, $file ) ) {
+			$this->debug_message( 'skipping local backup due to filter' );
 			return;
 		}
 		$backup_file = $this->get_backup_location( $file );
 		if ( ! $backup_file || $backup_file === $file ) {
+			$this->debug_message( "$backup_file is not a valid backup location for $file" );
 			return;
 		}
 		\clearstatcache();
 		if ( $this->is_file( $backup_file ) ) {
+			$this->debug_message( "$backup_file already exists, not overwriting" );
 			return;
 		}
 		\wp_mkdir_p( \dirname( $backup_file ) );
 		\clearstatcache();
 		if ( ! \is_writable( \dirname( $backup_file ) ) ) {
+			$this->debug_message( \dirname( $backup_file ) . ' is not writable' );
 			return;
 		}
 		$this->debug_message( "backing up $file to $backup_file" );
@@ -278,7 +288,6 @@ class Backup extends Base {
 	 * Restore an image from local or cloud storage.
 	 *
 	 * @global object $wpdb
-	 * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
 	 *
 	 * @param int|array $image The db record/ID of the image to restore.
 	 * @return bool True if the image was restored successfully.
@@ -286,15 +295,15 @@ class Backup extends Base {
 	public function restore_file( $image ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
 		global $wpdb;
-		if ( \strpos( $wpdb->charset, 'utf8' ) === false ) {
-			\ewww_image_optimizer_db_init();
-			global $ewwwdb;
-		} else {
-			$ewwwdb = $wpdb;
-		}
 		$this->error_message = '';
 		if ( ! \is_array( $image ) && ! empty( $image ) && \is_numeric( $image ) ) {
-			$image = $ewwwdb->get_row( "SELECT id,path,backup FROM $ewwwdb->ewwwio_images WHERE id = $image", ARRAY_A );
+			$image = $wpdb->get_row(
+				$wpdb->prepare(
+					"SELECT id,path,backup FROM $wpdb->ewwwio_images WHERE id = %d",
+					$image
+				),
+				ARRAY_A
+			);
 		}
 		if ( ! empty( $image['path'] ) ) {
 			$image['path'] = \ewww_image_optimizer_absolutize_path( $image['path'] );
@@ -364,7 +373,7 @@ class Backup extends Base {
 			/* $this->delete_file( $backup_file ); */
 			global $wpdb;
 			// Reset the image record.
-			$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->ewwwio_images SET results = '', image_size = 0, updates = 0, updated=updated, level = 0, resized_width = 0, resized_height = 0, resize_error = 0, webp_size = 0, webp_error = 0 WHERE id = %d", $image['id'] ) );
+			$wpdb->query( $wpdb->prepare( "UPDATE $wpdb->ewwwio_images SET image_size = 0, updates = 0, updated=updated, level = 0, resized_width = 0, resized_height = 0, resize_error = 0, webp_size = 0, webp_error = 0 WHERE id = %d", $image['id'] ) );
 			return true;
 		}
 		$this->debug_message( 'restore not confirmed, filesize does not match: ' . $this->filesize( $file ) . ' vs. ' . $this->filesize( $backup_file ) );
@@ -412,7 +421,6 @@ class Backup extends Base {
 	 * Restore an attachment from the API or local backups.
 	 *
 	 * @global object $wpdb
-	 * @global object $ewwwdb A clone of $wpdb unless it is lacking utf8 connectivity.
 	 *
 	 * @param int    $id The attachment id number.
 	 * @param string $gallery Optional. The gallery from whence we came. Default 'media'.
@@ -422,20 +430,21 @@ class Backup extends Base {
 	public function restore_backup_from_meta_data( $id, $gallery = 'media', $meta = array() ) {
 		$this->debug_message( '<b>' . __METHOD__ . '()</b>' );
 		global $wpdb;
-		if ( \strpos( $wpdb->charset, 'utf8' ) === false ) {
-			\ewww_image_optimizer_db_init();
-			global $ewwwdb;
-		} else {
-			$ewwwdb = $wpdb;
-		}
-		$images = $ewwwdb->get_results( "SELECT id,path,resize,backup FROM $ewwwdb->ewwwio_images WHERE attachment_id = $id AND gallery = '$gallery'", ARRAY_A );
+		$images = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT id,path,resize,backup FROM $wpdb->ewwwio_images WHERE attachment_id = %d AND gallery = %s",
+				$id,
+				$gallery
+			),
+			ARRAY_A
+		);
 		foreach ( $images as $image ) {
 			if ( ! empty( $image['path'] ) ) {
 				$image['path'] = \ewww_image_optimizer_absolutize_path( $image['path'] );
 			}
 			$this->restore_file( $image );
 			if ( 'media' === $gallery && 'full' === $image['resize'] && ! empty( $meta['width'] ) && ! empty( $meta['height'] ) ) {
-				list( $width, $height ) = \wp_getimagesize( $image['path'] );
+				list( $width, $height ) = $this->getimagesize( $image['path'] );
 				if ( (int) $width !== (int) $meta['width'] || (int) $height !== (int) $meta['height'] ) {
 					$meta['height'] = $height;
 					$meta['width']  = $width;

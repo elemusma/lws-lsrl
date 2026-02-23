@@ -1,10 +1,12 @@
 <?php
-
 /**
  * Class that handles the export and import of Breeze options
  *
  * Class Breeze_Settings_Import_Export
  */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 class Breeze_Settings_Import_Export {
 
 	function __construct() {
@@ -12,11 +14,11 @@ class Breeze_Settings_Import_Export {
 		// Logged in users only action.
 		add_action( 'wp_ajax_breeze_export_json', array( &$this, 'export_json_settings' ) );
 		add_action( 'wp_ajax_breeze_import_json', array( &$this, 'import_json_settings' ) );
-
 	}
 
 	/**
 	 * Import settings using interface in back-end.
+	 *
 	 * @since 1.2.2
 	 * @access public
 	 */
@@ -80,7 +82,6 @@ class Breeze_Settings_Import_Export {
 		} else {
 			wp_send_json_error( new WP_Error( 'file_not_set', __( 'The JSON file is missing', 'breeze' ) ) );
 		}
-
 	}
 
 	/**
@@ -90,6 +91,7 @@ class Breeze_Settings_Import_Export {
 	 * @access public
 	 */
 	public function export_json_settings() {
+		check_ajax_referer( '_breeze_export_json', 'security' );
 		breeze_is_restricted_access();
 		$level = '';
 		if ( is_multisite() ) {
@@ -101,7 +103,6 @@ class Breeze_Settings_Import_Export {
 		header( 'Content-type: application/json' );
 
 		wp_send_json( $response );
-
 	}
 
 	/**
@@ -194,7 +195,7 @@ class Breeze_Settings_Import_Export {
 	/**
 	 * Import settings using interface in back-end.
 	 *
-	 * @param array $options The array with options from import action.
+	 * @param array  $options The array with options from import action.
 	 * @param string $level empty for single site, network for root multisite, numeric for subside ID.
 	 *
 	 * @return bool|string
@@ -214,6 +215,9 @@ class Breeze_Settings_Import_Export {
 			if ( 'network' === $level ) {
 				foreach ( $options as $meta_key => $meta_value ) {
 					if ( false !== strpos( $meta_key, 'breeze_' ) ) {
+						if ( 'breeze_cdn_integration' === $meta_key ) {
+							$meta_value = $this->breeze_sanitize_imported_settings( $meta_value );
+						}
 						update_site_option( $meta_key, $meta_value );
 					} else {
 						// $meta_key was not imported
@@ -228,6 +232,9 @@ class Breeze_Settings_Import_Export {
 				foreach ( $options as $meta_key => $meta_value ) {
 
 					if ( false !== strpos( $meta_key, 'breeze_' ) ) {
+						if ( 'breeze_cdn_integration' === $meta_key ) {
+							$meta_value = $this->breeze_sanitize_imported_settings( $meta_value );
+						}
 						update_blog_option( $blog_id, $meta_key, $meta_value );
 					} else {
 						// $meta_key was not imported
@@ -241,6 +248,9 @@ class Breeze_Settings_Import_Export {
 
 			foreach ( $options as $meta_key => $meta_value ) {
 				if ( false !== strpos( $meta_key, 'breeze_' ) ) {
+					if ( 'breeze_cdn_integration' === $meta_key ) {
+						$meta_value = $this->breeze_sanitize_imported_settings( $meta_value );
+					}
 					update_option( $meta_key, $meta_value );
 				} else {
 					// $meta_key was not imported
@@ -259,10 +269,25 @@ class Breeze_Settings_Import_Export {
 		return true;
 	}
 
+	public function breeze_sanitize_imported_settings( $settings ) {
+
+		foreach ( $settings as $name => $value ) {
+			if ( is_array( $value ) ) {
+				// If the value is an array, recursively sanitize it.
+				$settings[ $name ] = $this->breeze_sanitize_imported_settings( $value );
+			} else {
+				// If the value is not an array, sanitize the value.
+				$settings[ $name ] = sanitize_text_field( $value );
+			}
+		}
+
+		return $settings;
+	}
+
 	/**
 	 * Import settings using WP-CLI in terminal.
 	 *
-	 * @param array $options The array with options from import action.
+	 * @param array  $options The array with options from import action.
 	 * @param string $level empty for single site, network for root multisite, numeric for subside ID.
 	 *
 	 * @return bool|string
@@ -362,9 +387,9 @@ class Breeze_Settings_Import_Export {
 	 * Import settings using interface in back-end.
 	 * Migrate old settings to the new format created in v2.0.0.
 	 *
-	 * @param array $options_imported The array with options from import action.
+	 * @param array  $options_imported The array with options from import action.
 	 * @param string $level empty for single site, network for root multisite, numeric for subside ID.
-	 * @param bool $show_cli_messages Display CLI messages in the terminal when using import by WP-CLI.
+	 * @param bool   $show_cli_messages Display CLI messages in the terminal when using import by WP-CLI.
 	 *
 	 * @return bool
 	 *
@@ -414,7 +439,7 @@ class Breeze_Settings_Import_Export {
 			$is_group_js               = ( isset( $options['breeze-group-js'] ) ? $options['breeze-group-js'] : '0' );
 
 			if ( 0 === absint( $is_minification_js ) || 0 === absint( $is_inline_minification_js ) ) {
-				//	$is_group_js = '0';
+				// $is_group_js = '0';
 			}
 
 			$file = array(
@@ -453,7 +478,6 @@ class Breeze_Settings_Import_Export {
 				'breeze-store-facebookpixel-locally'   => ( isset( $options['breeze-store-facebookpixel-locally'] ) ? $options['breeze-store-facebookpixel-locally'] : '0' ),
 				'breeze-store-gravatars-locally'       => ( isset( $options['breeze-store-gravatars-locally'] ) ? $options['breeze-store-gravatars-locally'] : '0' ),
 				'breeze-enable-api'                    => ( isset( $options['breeze-enable-api'] ) ? $options['breeze-enable-api'] : '0' ),
-				'breeze-secure-api'                    => ( isset( $options['breeze-secure-api'] ) ? $options['breeze-secure-api'] : '0' ),
 				'breeze-api-token'                     => ( isset( $options['breeze-api-token'] ) ? $options['breeze-api-token'] : '' ),
 
 			);
@@ -571,9 +595,8 @@ class Breeze_Settings_Import_Export {
 	 * Validates the options making sure there values are
 	 * the correct format for each option.
 	 *
-	 * @param mixed $value Imported option value.
+	 * @param mixed  $value Imported option value.
 	 * @param string $option Breeze option name.
-	 *
 	 *
 	 * @return array|mixed|string|void|null
 	 * @access private
@@ -691,7 +714,6 @@ class Breeze_Settings_Import_Export {
 			'breeze-preload-links'                 => '1',
 			'breeze-wp-emoji'                      => '0',
 			'breeze-enable-api'                    => '0',
-			'breeze-secure-api'                    => '0',
 			'cdn-active'                           => '0',
 			'cdn-relative-path'                    => '1',
 			'auto-purge-varnish'                   => '1',

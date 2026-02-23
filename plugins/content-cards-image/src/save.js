@@ -93,14 +93,37 @@ export default function save( { attributes } ) {
 										data-aos={column.data_aos} 
 										data-aos-delay={column.data_aos_delay}
 									>
-										{ column.img && (
-											<img
-												src={ column.img }
-												alt={ column.img_alt || column.img_title }
-												style={ column.img_style }
-												className={ column.img_class }
-											/>
-										) }
+										{ column.img_type !== 'gallery' ? (
+    column.img && (
+        <img
+            src={ column.img }
+            alt={ column.img_alt || column.img_title }
+            className={ column.img_class }
+            style={ column.img_style }
+        />
+    )
+) : (
+    <div className={`${column.media_class}`} style={column.media_style}>
+        {
+            column.img_gallery &&
+            column.img_gallery.length > 0 &&
+            column.img_gallery.map( ( img, i ) => (
+                <a
+                    key={ i }
+                    href={ img.url }
+                    data-lightbox={ column.media_lightbox }
+                >
+                    <img
+                        src={ img.url }
+                        alt={ img.alt || img.title }
+                        className={ column.img_class }
+                        style={ column.img_style }
+                    />
+                </a>
+            ) )
+        }
+    </div>
+) }
 
 										{ column.code_block && (
 											<RawHTML>{ column.code_block }</RawHTML>

@@ -131,15 +131,16 @@
           "inner_col_class": "",
           "data_aos": "fade-up",
           "data_aos_delay": "",
+          "img_type": "image",
+          "media_class": "",
+          "media_style": "",
           "img": "",
-          "img_alt": {
-            "type": "string"
-          },
-          "img_title": {
-            "type": "string"
-          },
+          "img_alt": "",
+          "img_title": "",
+          "img_gallery": [],
           "img_class": "w-100 h-auto",
           "img_style": "object-fit:contain;",
+          "media_lightbox": "",
           "content_only_class": "",
           "content_only_style": "",
           "content_only_id": "",

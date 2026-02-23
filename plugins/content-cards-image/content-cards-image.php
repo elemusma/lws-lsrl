@@ -32,7 +32,6 @@ function create_block_content_cards_image_block_init() {
 	// 	array(),
 	// 	filemtime(get_theme_file_path('/css/sections/content-cards-image.css'))
 	// );
-	wp_enqueue_style('content-cards-image', get_theme_file_uri('/css/sections/content-cards-image.css'));
 	
 	register_block_type( __DIR__ . '/build' );
 }

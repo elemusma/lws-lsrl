@@ -1,9 +1,9 @@
 === Gravity Forms Zero Spam ===
 Contributors: gravityview
-Tags: gravityforms, gravity forms, anti-spam, antispam, spam, spam-blocker, spambot, spammer, add-ons, honeypot
-Requires at least: 3.0.1
-Tested up to: 6.4.1
-Stable tag: trunk
+Tags: gravity forms, spam, captcha, honeypot, anti-spam
+Requires at least: 4.7
+Tested up to: 6.7.1
+Stable tag: 1.4.6
 Requires PHP: 5.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -15,8 +15,7 @@ Enhance your Gravity Forms to include anti-spam measures originally based on the
 
 This Gravity Forms add-on blocks spam using a non-obtrusive anti-spam measure and can email a spam report summary.
 
-
-## Spam blocking
+## Spam blocking for Gravity Forms
 
 To get started, all you need to do is activate the plugin!
 
@@ -24,11 +23,11 @@ To get started, all you need to do is activate the plugin!
 
 Zero Spam is better than the Gravity Forms anti-spam honeypot field. If you're getting spammed, try this plugin.
 
-### Use instead of reCaptcha
+### Use this plugin instead of reCaptcha
 
 **reCaptcha is user-hostile!** Use this instead! Users don't need to click stoplights, crosswalks, or bicycles when you use this plugin to stop spam.
 
-### Enable or disable per-form
+### Enable or disable filtering per form
 
 If you only want the plugin for specific forms, that's possible! The plugin adds a simple "Prevent spam using Gravity Forms Zero Spam" setting to each form (requires Gravity Forms 2.5 or newer).
 
@@ -114,6 +113,25 @@ First, **de-activate and re-activate the plugin**. Then let us know on the suppo
 You can enable a spam summary report email. This email will be sent to the email address configured in the "Spam Summary Email" setting on the Gravity Forms "Forms" menu, click Settings, then click the Zero Spam tab.
 
 == Changelog ==
+
+= 1.4.6 on January 7, 2025 =
+
+* Fixed: Fatal error on PHP 7.2 and older
+
+= 1.4.5 on November 28, 2024 =
+
+* Fixed: PHP deprecation warning when using Gravity Forms 2.8 or newer
+
+= 1.4.4 on October 15, 2024 =
+
+* Improved: Submissions by users who have the capability to edit Gravity Forms entries are no longer processed by Zero Spam (thanks for the idea, @richardjb62!)
+* Fixed: Use GMT time for spam summary email reports to make sure the report is sent at the correct time
+
+= 1.4.2 & 1.4.3 on October 10, 2024 =
+
+* Improved: Sanitized form ID in JavaScript
+* Modified: Changed the text domain for strings to `gravity-forms-zero-spam` to match the plugin slug
+* Fixed: Added missing Text Domain header for translation
 
 = 1.4.1 on November 10, 2023 =
 

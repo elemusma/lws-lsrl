@@ -3,6 +3,9 @@
  * This class handles the functionality of clearing the cache for
  * individual posts or pages.
  */
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
 class Purge_Post_Cache {
 
 	/**
@@ -76,12 +79,7 @@ class Purge_Post_Cache {
 
 		check_admin_referer( 'clear-cache-post_' . $post_id );
 
-		global $wp_filesystem;
-
-		if ( empty( $wp_filesystem ) ) {
-			require_once ABSPATH . '/wp-admin/includes/file.php';
-			WP_Filesystem();
-		}
+		$wp_filesystem = breeze_get_filesystem();
 
 		$url_path = get_permalink( $post_id );
 
@@ -109,7 +107,14 @@ class Purge_Post_Cache {
 		}
 		// Clear the varnish cache.
 		do_action( 'breeze_clear_varnish' );
-		wp_redirect(
+
+		// Clear the object cache.
+		Breeze_PurgeCache::clear_op_cache_for_posts( $post_id );
+
+		// Clear the CF cache.
+		$post_related_urls = Breeze_PurgeCache::collect_urls_for_cache_purge( $post_id );
+		Breeze_CloudFlare_Helper::purge_cloudflare_cache_urls( $post_related_urls );
+		wp_safe_redirect(
 			add_query_arg(
 				array(
 					'breeze_post_cache' => 'cleared',

@@ -27,6 +27,7 @@ import {
 	SelectControl
 } from '@wordpress/components';
 import { useState, useEffect } from '@wordpress/element';
+import { useSelect } from '@wordpress/data';
 // import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 
 
@@ -80,30 +81,36 @@ export default function Edit( { attributes, setAttributes } ) {
 	const [ value, setValue ] = useState( '' );
 
 	const utilityFunction = () => ({
-		col_class: 'col-lg-3 col-6 d-flex h-auto',
-		col_style: '',
-		col_id: '',
-		col_link: '',  // ADD THIS
-		inner_col_style: '',
-		inner_col_class: '',
-		data_aos: 'fade-up',
-		data_aos_delay:'',
-		img: '',
-	    img_alt: '',
-  		img_title: '',  // Add this line
-		img_class: 'w-100 h-auto',
-		img_style: 'object-fit:contain;',
-		content_only_class:'',
-		content_only_style:'',
-		title: '',
-		title_tag: 'h2',
-		title_class: 'h6 bold',
-		title_style: '',
-		content_class: '',
-		content_style: '',
-		content: '',
-		code_block: ''
-	})
+    col_class: 'col-lg-3 col-6',
+    col_style: '',
+    col_id: '',
+    col_link: '',
+    inner_col_style: '',
+    inner_col_class: '',
+    data_aos: 'fade-up',
+    data_aos_delay: '',
+    img_type: 'image',   // ← new
+    img: '',
+    img_alt: '',
+    img_title: '',
+    img_gallery: [],     // ← new
+	media_class: '',
+	media_style: '',
+    img_class: 'w-100 h-auto',
+    img_style: 'object-fit:contain;',
+	media_lightbox:'',
+    content_only_class: '',
+    content_only_style: '',
+    content_only_id: '',
+    title: '',
+    title_tag: 'h2',
+    title_class: 'h6 bold',
+    title_style: '',
+    content_class: '',
+    content_style: '',
+    content: '',
+    code_block: ''
+});
 
 	const addColumn = () => {
 		setAttributes( {
@@ -115,25 +122,66 @@ export default function Edit( { attributes, setAttributes } ) {
 	};
 
 	const updateColumn = (columnIndex, field, value) => {
-		setAttributes({
-			columns: columns.map((column, index) => {
-				if (index === columnIndex) {
-					// Check if the value is an object (in case of multiple updates)
-					if (typeof value === 'object' && value !== null) {
-						return {
-							...column,
-							...value, // Spread the object fields
-						};
-					}
-					return {
-						...column,
-						[field]: value, // Single field update
-					};
-				}
-				return column;
-			}),
-		});
-	};
+    setAttributes({
+        columns: columns.map((column, index) => {
+            if (index === columnIndex) {
+
+                // Only merge if it's a plain object (NOT array)
+                if (
+                    typeof value === 'object' &&
+                    value !== null &&
+                    !Array.isArray(value)
+                ) {
+                    return {
+                        ...column,
+                        ...value,
+                    };
+                }
+
+                return {
+                    ...column,
+                    [field]: value,
+                };
+            }
+
+            return column;
+        }),
+    });
+};
+
+	const GalleryPreview = ({ ids }) => {
+    const images = useSelect(
+        ( select ) => {
+            return ( ids || [] ).map( ( id ) =>
+                select( 'core' ).getMedia( id )
+            );
+        },
+        [ ids ]
+    );
+
+    if ( ! images ) return null;
+
+    return (
+        <>
+            { images.map( ( img, i ) =>
+                img ? (
+                    <img
+                        key={ i }
+                        src={ img.source_url }
+                        alt={ img.alt_text }
+                        style={{
+                            width: '80px',
+                            height: '80px',
+                            objectFit: 'cover',
+                            borderRadius: '3px',
+                            display: 'block'
+                        }}
+                    />
+                ) : null
+            ) }
+        </>
+    );
+};
 
 	return (
 		<>
@@ -519,54 +567,203 @@ export default function Edit( { attributes, setAttributes } ) {
 									style={ {
 										display: 'flex',
 										paddingTop: '25px',
+										justifyContent: 'space-between',
 									} }
 								>
-									<div>
+									<div style={{width: '45%'}}>
+<div style={{display:'flex'}}>
+<div>
+<p style={ { marginBottom: '0px' } }>Media Class</p>
+<input
+	type="text"
+	style={{}}
+	value={ column.media_class }
+	onChange={ ( content ) =>
+		updateColumn(
+			index,
+			'media_class',
+			content.target.value
+		)
+	}
+/>
+</div>
+<div>
+<p style={ { marginBottom: '0px' } }>Media Style</p>
+<input
+	type="text"
+	style={{}}
+	value={ column.media_style }
+	onChange={ ( content ) =>
+		updateColumn(
+			index,
+			'media_style',
+			content.target.value
+		)
+	}
+/>
+</div>
+</div>
 										
-<MediaUploadCheck>
-	<MediaUpload
-		onSelect={(media) =>
-  updateColumn(index, null, { img: media.url, img_alt: media.alt, img_title: media.title?.rendered || media.title || '' })
-}
-		type="image"
-		allowedTypes={['image']}
-		value={column.img}
-		render={({ open }) => (
-			<div>
-				{column.img && (
-				<p className={``} style={{fontSize:'80%',lineHeight:'1.2'}}>{__('Alt Text:')} {column.alt || column.img_title}</p>
-			)}
-				{column.img && (
-					<Button
-						isLink
-						isDestructive
-						onClick={() => updateColumn(index, null, {img: '', img_alt: '', img_title: ''})}
-					>
-						{__('Remove Col Image')}
-					</Button>
-				)}
-				<Button
-					onClick={open}
-					icon="upload"
-					className="editor-media-placeholder__button is-button is-default is-large"
-				>
-					{__('Select Col Image')}
-				</Button>
-			</div>
-		)}
-	/>
-</MediaUploadCheck>
-{ column.img && (
-  <img
-    src={ column.img }
-    alt={ column.img_alt || column.img_title }
-    style={ {
-      width: '400px',
-      height: '225px',
-      objectFit: 'cover',
-    } }
-  />
+{/* Image / Gallery Toggle */}
+<div style={{color:'white'}}>
+<ToggleControl
+    label={ column.img_type === 'gallery' ? __( 'Gallery' ) : __( 'Image' ) }
+    help={ column.img_type === 'gallery' ? __( 'Gallery mode: multiple images' ) : __( 'Image mode: single image' ) }
+    checked={ column.img_type === 'gallery' }
+    onChange={ ( val ) => updateColumn( index, 'img_type', val ? 'gallery' : 'image' ) }
+/>
+</div>
+
+{ column.img_type !== 'gallery' ? (
+    /* ── Single Image ── */
+    <MediaUploadCheck>
+        <MediaUpload
+            onSelect={ ( media ) => updateColumn( index, null, {
+                img: media.url,
+                img_alt: media.alt,
+                img_title: media.title?.rendered || media.title || '',
+            }) }
+            allowedTypes={ ['image'] }
+            value={ column.img }
+            render={ ({ open }) => (
+                <div>
+                    { column.img && (
+                        <>
+                            <Button
+                                isLink
+                                isDestructive
+                                onClick={ () => updateColumn( index, null, { img: '', img_alt: '', img_title: '' }) }
+                            >
+                                { __( 'Remove Image' ) }
+                            </Button>
+                            <img
+                                src={ column.img }
+                                alt={ column.img_alt || column.img_title }
+                                style={{ width: '400px', height: '225px', objectFit: 'cover' }}
+                            />
+                        </>
+                    ) }
+                    <Button
+                        onClick={ open }
+                        icon="upload"
+                        className="editor-media-placeholder__button is-button is-default is-large"
+                    >
+                        { __( 'Select Col Image' ) }
+                    </Button>
+                </div>
+            ) }
+        />
+    </MediaUploadCheck>
+) : (
+    /* ── Gallery ── */
+    <MediaUploadCheck>
+        <MediaUpload
+                onSelect={ ( media ) => {
+        const items = Array.isArray(media) ? media : [ media ];
+        updateColumn( index, 'img_gallery',
+            items.map(item => ({
+                id: item.id,
+                url: item.url,
+                alt: item.alt_text || item.alt || '',
+                title: item.title?.rendered || item.title || '',
+            }))
+        );
+    }}
+    allowedTypes={ ['image'] }
+    multiple={ true }
+    gallery={ true }
+    value={ (column.img_gallery || []).map( img => img.id ) } 
+    render={ ({ open }) => (
+                <div>
+                    { column.img_gallery && column.img_gallery.length > 0 ? (
+                        <>
+						
+                            {column.img_gallery && column.img_gallery.length > 0 && (
+    <div style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: '6px',
+        margin: '8px 0',
+        padding: '8px',
+        border: '1px solid #ddd',
+        borderRadius: '4px',
+        background: '#f9f9f9'
+    }}>
+        { column.img_gallery.map( ( img, i ) => (
+            <img
+                key={ i }
+                src={ img.url }
+                alt={ img.alt || img.title }
+                style={{
+                    width: '80px',
+                    height: '80px',
+                    objectFit: 'cover',
+                    borderRadius: '3px',
+                    display: 'block'
+                }}
+            />
+        )) }
+    </div>
 )}
+
+                            <p style={{ margin: '0 0 6px', fontSize: '12px', color: '#555' }}>
+                                { column.img_gallery.length } { __( 'image(s) selected' ) }
+                            </p>
+
+                            {/* Edit opens the gallery picker with existing selection */}
+                            <Button
+                                onClick={ open }
+                                icon="edit"
+                                className="editor-media-placeholder__button is-button is-default is-large"
+                                style={{ marginBottom: '6px' }}
+                            >
+                                { __( 'Edit Gallery' ) }
+                            </Button>
+
+                            {/* Remove all */}
+                            <Button
+                                isLink
+                                isDestructive
+                                onClick={ () => updateColumn( index, 'img_gallery', [] ) }
+                                style={{ display: 'block', marginTop: '4px' }}
+                            >
+                                { __( 'Remove All Images' ) }
+                            </Button>
+                        </>
+                    ) : (
+                        <Button
+                            onClick={ open }
+                            icon="upload"
+                            className="editor-media-placeholder__button is-button is-default is-large"
+                        >
+                            { __( 'Select Gallery Images' ) }
+                        </Button>
+                    ) }
+                </div>
+            ) }
+        />
+{console.log('gallery:', column.img_gallery)}
+    </MediaUploadCheck>
+) }
+
+{/* Class / Style fields — shared for both modes */}
+<div style={{ display: 'flex' }}>
+    <div style={{ }}>
+        <p style={{ marginBottom: '0px' }}>Media Lightbox</p>
+        <input
+            type="text"
+            style={{ width: '175px' }}
+            value={ column.media_lightbox }
+            onChange={ ( e ) => updateColumn( index, 'media_lightbox', e.target.value ) }
+        />
+    </div>
+</div>
+
+
+
+
+
+
 <div>
 								<div style={{display:'flex'}}>
 								<div style={{paddingRight:'25px'}}>
