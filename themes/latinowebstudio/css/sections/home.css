@@ -1,9 +1,24 @@
 @media only screen and (max-width:767px) {
-    .hero {
+    /* .hero {
         padding-bottom: 135px !important;
     }
     .hero-text {
         background: rgba(0, 0, 0, .65);
         padding: 25px 15px;
+    } */
+     .hero-home {
+        padding: 25px 0px 125px !important;
+     }
+        .dustin-thumbnail-section {
+        background: linear-gradient(0deg, rgba(255, 255, 255, 0.5) 0%, rgba(0, 0, 0, 0) 30%) !important;
+    }
+    .steps-col {
+        padding: 25px !important;
+    }
+}
+
+@media only screen and (min-width: 768px) and (max-width: 991px) {
+    .hero-home {
+        padding: 145px 0px !important;
     }
 }

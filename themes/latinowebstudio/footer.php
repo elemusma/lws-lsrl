@@ -36,8 +36,13 @@ echo '</div>';
 // echo '</div>';
 
 echo '<div class="row justify-content-between" style="padding-bottom:10px;">';
-echo '<div class="col-md-9">';
+echo '<div class="col-md-9 text-md-left text-center">';
 echo companyCopyright();
+?>
+<p class="small text-black" style="margin-bottom:0">Copyright© <?php echo date('Y'); ?> Lone Star Ranch Land.</a></p>
+
+<small class=""><a href="https://latinowebstudio.com/" target="_blank" rel="noopener noreferrer nofollow" title="Web Design, Development & SEO done by Latino Web Studio in Denver, CO" class="">Web Design & Search Engine Optimization</a> <span class="">done by Latino Web Studio.</span></small>
+<?php
 echo '</div>';
 echo '<div class="col-md-3">';
 // echo get_template_part('partials/si');
@@ -60,18 +65,23 @@ echo '<a href="' . home_url() . '" title="Go back to the Home of ' . esc_attr( g
 // echo wp_get_attachment_image(logoImg()['id'],'full','',[
 //     'class'=>'w-100 h-auto',
 // ]);
-echo logoSVG();
+// echo logoSVG();
+echo wp_get_attachment_image(logoImg()['id'], 'full', false, array( 'alt' => get_bloginfo( 'name' ) . ' - ' . get_bloginfo( 'description' ), 'style' => 'width:100%;height:auto;','class'=>'' ));
 echo '</a>';
 echo '</div>';
 
-echo '<div class="spacer" style="height:50px;"></div>';
+// echo '<div class="spacer" style="height:50px;"></div>';
 
 wp_nav_menu(array(
     'menu' => 'Primary',
     'menu_class'=>'menu list-unstyled'
 ));
 
-echo '<a class="btn-main small" href="#get-cash" title="Get Cash For Your Property" style="margin-left: 0;">Get Cash For Your Property</a>';
+// echo '<a class="btn-main small" href="#get-cash" title="Get Cash For Your Property" style="margin-left: 0;">Get Cash For Your Property</a>';
+
+echo '<div class="text-left">';
+echo do_shortcode('[global_cta]');
+echo '</div>';
 
 echo companyCopyright();
 

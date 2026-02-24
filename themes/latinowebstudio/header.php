@@ -25,7 +25,7 @@ echo '<div class="container">';
 
 echo '<div class="row align-items-center">';
 
-echo '<div class="col-lg-3 col-md-4 col-8 text-center">';
+echo '<div class="col-lg-3 col-md-4 col-5 text-center">';
 
 echo '<div class="d-md-none" style="height:10px;"></div>';
 
@@ -48,7 +48,7 @@ echo '<a class="btn-main" href="/contact/" title="Get Cash for Your Land">Get Ca
 
 echo '</div>';
 
-echo '<div class="col-lg-3 col-md-8 col-4 desktop-hidden order-3 d-flex align-items-center justify-content-end">';
+echo '<div class="col-lg-3 col-md-6 col-3 desktop-hidden order-3 d-flex align-items-center justify-content-center">';
 
 echo '<div class="d-flex justify-content-end align-items-center">';
 
@@ -66,9 +66,13 @@ echo '</div>';
 echo '</div>';
 
 echo '</div>';
+?>
 
+<div class="col-md-2 col-4 desktop-hidden order-3 text-right">
+    <?php echo do_shortcode('[button href="/contact/" title="Get Cash for Your Land" class="btn-main small" style="white-space:nowrap;padding:5px 15px;margin:0px;"]Cash Offer[/button]'); ?>
+</div>
 
-
+<?php
 echo '</div>';
 echo '</div>';
 echo '</div>';
